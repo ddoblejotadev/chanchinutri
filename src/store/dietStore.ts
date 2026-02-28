@@ -33,7 +33,7 @@ export interface SavedDiet {
   createdAt: string;
 }
 
-export type AnimalType = 'lechon' | 'crecimiento' | 'cerda' | 'verraco';
+export type AnimalType = 'lechon' | 'crecimiento' | 'cerda' | 'reproductor';
 
 export interface NutritionalRequirements {
   ne: { min: number; max: number };
@@ -74,8 +74,8 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
       p: { min: 3, max: 5 },
     },
   },
-  verraco: {
-    label: 'Verraco',
+  reproductor: {
+    label: 'Reproductor',
     requirements: {
       ne: { min: 2100, max: 2400 },
       lys: { min: 8, max: 10 },
