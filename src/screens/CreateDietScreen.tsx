@@ -1,29 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, FlatList } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigation';
-import { useDietStore } from '../store/dietStore';
-import { ingredients } from '../data/ingredients';
-import { calculateDiet, getTotalPercentage } from '../engine/calculations';
+import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
+import { ingredients, CATEGORIES } from '../data/ingredients';
+import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'CreateDiet'> };
 
 export default function CreateDietScreen({ navigation }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  const { currentDiet, addIngredient, updatePercentage, removeIngredient, clearDiet } = useDietStore();
+  const { 
+    currentDiet, addIngredient, updatePercentage, removeIngredient, clearDiet, 
+    animalType, darkMode, loadFromStorage 
+  } = useDietStore();
   
+  useEffect(() => {
+    loadFromStorage();
+  }, []);
+
   const totalPct = getTotalPercentage(currentDiet);
-  const filteredIngredients = ingredients.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredIngredients = ingredients.filter(i => {
+    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = !selectedCategory || i.category === selectedCategory;
+    return matchSearch && matchCategory;
+  });
+
+  const validation = validateDiet(currentDiet, animalType);
+  const compliance = getComplianceStatus(currentDiet, animalType);
+
+  const colors = darkMode ? {
+    bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
+    warning: '#FFA000', error: '#f44336', success: '#4CAF50'
+  } : {
+    bg: '#f5f5f5', card: '#FFF', text: '#333', textSecondary: '#666', accent: '#4CAF50',
+    warning: '#FFA000', error: '#f44336', success: '#4CAF50'
+  };
 
   const handleCalculate = () => {
     if (currentDiet.length === 0) {
       alert('Agregá al menos un ingrediente');
-      return;
-    }
-    if (Math.abs(totalPct - 100) > 0.1) {
-      alert(`La dieta suma ${totalPct.toFixed(1)}%. Debe sumar 100%.`);
       return;
     }
     navigation.navigate('DietResult');
@@ -36,76 +55,131 @@ export default function CreateDietScreen({ navigation }: Props) {
     }
   };
 
+  const getComplianceColor = (status: string) => {
+    switch (status) {
+      case 'green': return colors.success;
+      case 'yellow': return colors.warning;
+      case 'red': return colors.error;
+      default: return colors.textSecondary;
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <Modal visible={showModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Agregar Ingrediente</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Agregar Ingrediente</Text>
+            
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { backgroundColor: colors.bg, color: colors.text }]}
               placeholder="Buscar..."
+              placeholderTextColor={colors.textSecondary}
               value={search}
               onChangeText={setSearch}
             />
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
+              <TouchableOpacity 
+                style={[styles.categoryBtn, !selectedCategory && styles.categoryBtnActive]} 
+                onPress={() => setSelectedCategory(null)}
+              >
+                <Text style={[styles.categoryBtnText, { color: !selectedCategory ? colors.accent : colors.textSecondary }]}>Todos</Text>
+              </TouchableOpacity>
+              {CATEGORIES.map(cat => (
+                <TouchableOpacity 
+                  key={cat} 
+                  style={[styles.categoryBtn, selectedCategory === cat && styles.categoryBtnActive]}
+                  onPress={() => setSelectedCategory(cat)}
+                >
+                  <Text style={[styles.categoryBtnText, { color: selectedCategory === cat ? colors.accent : colors.textSecondary }]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             <FlatList
               data={filteredIngredients}
               keyExtractor={(item) => item.id}
+              style={styles.ingredientList}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.ingredientOption}
+                  style={[styles.ingredientOption, { borderBottomColor: colors.bg }]}
                   onPress={() => { addIngredient(item); setShowModal(false); setSearch(''); }}
                 >
-                  <Text style={styles.ingredientOptionText}>{item.name}</Text>
-                  <Text style={styles.ingredientOptionNe}>NE: {item.ne}</Text>
+                  <View>
+                    <Text style={[styles.ingredientOptionText, { color: colors.text }]}>{item.name}</Text>
+                    <Text style={[styles.ingredientOptionCategory, { color: colors.textSecondary }]}>{item.category}</Text>
+                  </View>
+                  <Text style={[styles.ingredientOptionNe, { color: colors.accent }]}>NE: {item.ne}</Text>
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity style={styles.closeModalBtn} onPress={() => { setShowModal(false); setSearch(''); }}>
+            <TouchableOpacity style={[styles.closeModalBtn, { backgroundColor: colors.accent }]} onPress={() => { setShowModal(false); setSearch(''); }}>
               <Text style={styles.closeModalBtnText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      <View style={styles.statsBar}>
-        <Text style={styles.statsBarText}>Total: {totalPct.toFixed(1)}%</Text>
-        <Text style={styles.statsBarText}>Ingredientes: {currentDiet.length}</Text>
+      {/* Compliance Indicators */}
+      {currentDiet.length > 0 && (
+        <View style={[styles.complianceBar, { backgroundColor: colors.card }]}>
+          <Text style={[styles.complianceTitle, { color: colors.text }]}>Cumplimiento - {ANIMAL_TYPES[animalType].label}</Text>
+          <View style={styles.complianceItems}>
+            <View style={styles.complianceItem}>
+              <View style={[styles.complianceDot, { backgroundColor: getComplianceColor(compliance.ne) }]} />
+              <Text style={[styles.complianceLabel, { color: colors.textSecondary }]}>NE</Text>
+            </View>
+            <View style={styles.complianceItem}>
+              <View style={[styles.complianceDot, { backgroundColor: getComplianceColor(compliance.lys) }]} />
+              <Text style={[styles.complianceLabel, { color: colors.textSecondary }]}>Lys</Text>
+            </View>
+            <View style={styles.complianceItem}>
+              <View style={[styles.complianceDot, { backgroundColor: getComplianceColor(compliance.p) }]} />
+              <Text style={[styles.complianceLabel, { color: colors.textSecondary }]}>P</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.statsBar, { backgroundColor: colors.card }]}>
+        <Text style={[styles.statsBarText, { color: colors.accent }]}>Total: {totalPct.toFixed(1)}%</Text>
+        <Text style={[styles.statsBarText, { color: colors.textSecondary }]}>Ingredientes: {currentDiet.length}</Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>Ingredientes</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredientes</Text>
         {currentDiet.length === 0 ? (
-          <Text style={styles.emptyText}>Tocá "+ Agregar" para comenzar</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Tocá "+ Agregar" para comenzar</Text>
         ) : (
           currentDiet.map((item, idx) => (
-            <View key={idx} style={styles.dietItem}>
-              <Text style={styles.dietItemName}>{item.name}</Text>
+            <View key={idx} style={[styles.dietItem, { backgroundColor: colors.card }]}>
+              <Text style={[styles.dietItemName, { color: colors.text }]}>{item.name}</Text>
               <TextInput
-                style={styles.pctInput}
+                style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
                 value={item.pct.toString()}
                 keyboardType="numeric"
                 onChangeText={(text) => updatePercentage(item.id, parseInt(text) || 0)}
               />
-              <Text style={styles.pctSign}>%</Text>
+              <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
               <TouchableOpacity onPress={() => removeIngredient(item.id)}>
-                <Text style={styles.removeBtn}>✕</Text>
+                <Text style={[styles.removeBtn, { color: colors.error }]}>✕</Text>
               </TouchableOpacity>
             </View>
           ))
         )}
 
-        <TouchableOpacity style={styles.addMainBtn} onPress={() => setShowModal(true)}>
-          <Text style={styles.addMainBtnText}>+ Agregar Ingrediente</Text>
+        <TouchableOpacity style={[styles.addMainBtn, { backgroundColor: colors.card }]} onPress={() => setShowModal(true)}>
+          <Text style={[styles.addMainBtnText, { color: colors.accent }]}>+ Agregar Ingrediente</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.calcBtn} onPress={handleCalculate}>
+        <TouchableOpacity style={[styles.calcBtn, { backgroundColor: colors.accent }]} onPress={handleCalculate}>
           <Text style={styles.calcBtnText}>Calcular Resultados</Text>
         </TouchableOpacity>
 
         {currentDiet.length > 0 && (
-          <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
-            <Text style={styles.clearBtnText}>Limpiar Dieta</Text>
+          <TouchableOpacity style={[styles.clearBtn, { backgroundColor: colors.card, borderColor: colors.error }]} onPress={handleClear}>
+            <Text style={[styles.clearBtnText, { color: colors.error }]}>Limpiar Dieta</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -114,30 +188,42 @@ export default function CreateDietScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  statsBar: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fff', padding: 12 },
-  statsBarText: { fontSize: 14, color: '#4CAF50', fontWeight: '600' },
+  container: { flex: 1 },
+  statsBar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
+  statsBarText: { fontSize: 14, fontWeight: '600' },
+  complianceBar: { padding: 10, margin: 15, marginBottom: 0, borderRadius: 8 },
+  complianceTitle: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
+  complianceItems: { flexDirection: 'row', gap: 20 },
+  complianceItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  complianceDot: { width: 10, height: 10, borderRadius: 5 },
+  complianceLabel: { fontSize: 12 },
   content: { flex: 1, padding: 15 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#333' },
-  emptyText: { color: '#999', fontStyle: 'italic', textAlign: 'center', padding: 20 },
-  dietItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  emptyText: { fontStyle: 'italic', textAlign: 'center', padding: 20 },
+  dietItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginBottom: 8 },
   dietItemName: { flex: 1, fontSize: 14 },
-  pctInput: { width: 55, borderWidth: 1, borderColor: '#ddd', borderRadius: 5, padding: 6, textAlign: 'center', marginRight: 5 },
-  pctSign: { marginRight: 12, color: '#666' },
-  removeBtn: { color: '#f44336', fontSize: 18, padding: 5 },
-  addMainBtn: { backgroundColor: '#E8F5E9', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  addMainBtnText: { color: '#4CAF50', fontWeight: '600', fontSize: 16 },
-  calcBtn: { backgroundColor: '#4CAF50', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  pctInput: { width: 55, borderRadius: 5, padding: 6, textAlign: 'center', marginRight: 5 },
+  pctSign: { marginRight: 12 },
+  removeBtn: { fontSize: 18, padding: 5 },
+  addMainBtn: { padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  addMainBtnText: { fontWeight: '600', fontSize: 16 },
+  calcBtn: { padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   calcBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  clearBtn: { backgroundColor: '#fff', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15, borderWidth: 1, borderColor: '#f44336' },
-  clearBtnText: { color: '#f44336', fontSize: 14 },
+  clearBtn: { padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15, borderWidth: 1 },
+  clearBtnText: { fontSize: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '70%' },
+  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  searchInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 15 },
-  ingredientOption: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  ingredientOptionText: { fontSize: 15 },
-  ingredientOptionNe: { color: '#4CAF50', fontSize: 13 },
-  closeModalBtn: { backgroundColor: '#4CAF50', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
+  searchInput: { borderRadius: 8, padding: 10, marginBottom: 15 },
+  categoryRow: { marginBottom: 15, maxHeight: 40 },
+  categoryBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, marginRight: 8 },
+  categoryBtnActive: { backgroundColor: '#E8F5E9' },
+  categoryBtnText: { fontSize: 12, fontWeight: '600' },
+  ingredientList: { maxHeight: 300 },
+  ingredientOption: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1 },
+  ingredientOptionText: { fontSize: 15, fontWeight: '600' },
+  ingredientOptionCategory: { fontSize: 12, marginTop: 2 },
+  ingredientOptionNe: { fontSize: 13 },
+  closeModalBtn: { padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
   closeModalBtnText: { color: '#fff', fontWeight: '600' },
 });
