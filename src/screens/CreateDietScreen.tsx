@@ -5,17 +5,19 @@ import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
 import { ingredients, CATEGORIES } from '../data/ingredients';
 import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
+import { dietTemplates, getTemplatesByAnimalType, DietTemplate } from '../data/templates';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'CreateDiet'> };
 
 export default function CreateDietScreen({ navigation }: Props) {
   const [showModal, setShowModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   const { 
     currentDiet, addIngredient, updatePercentage, removeIngredient, clearDiet, 
-    animalType, darkMode, loadFromStorage 
+    animalType, darkMode, loadFromStorage, setFullDiet
   } = useDietStore();
   
   useEffect(() => {
@@ -119,7 +121,51 @@ export default function CreateDietScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+        </Modal>
+
+        {/* Template Selection Modal */}
+        <Modal visible={showTemplateModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Seleccionar Plantilla</Text>
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+                Plantillas disponibles para {ANIMAL_TYPES[animalType].label}
+              </Text>
+              
+              <FlatList
+                data={getTemplatesByAnimalType(animalType)}
+                keyExtractor={(item) => item.id}
+                style={styles.templateList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.templateOption, { borderBottomColor: colors.bg }]}
+                    onPress={() => {
+                      setFullDiet(item.items);
+                      setShowTemplateModal(false);
+                    }}
+                  >
+                    <View>
+                      <Text style={[styles.templateName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.templateDesc, { color: colors.textSecondary }]}>{item.description}</Text>
+                      <Text style={[styles.templateItems, { color: colors.accent }]}>{item.items.length} ingredientes</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    No hay plantillas para este tipo de animal
+                  </Text>
+                }
+              />
+              <TouchableOpacity 
+                style={[styles.closeModalBtn, { backgroundColor: colors.error }]} 
+                onPress={() => setShowTemplateModal(false)}
+              >
+                <Text style={styles.closeModalBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
       {/* Compliance Indicators */}
       {currentDiet.length > 0 && (
@@ -146,6 +192,13 @@ export default function CreateDietScreen({ navigation }: Props) {
         <Text style={[styles.statsBarText, { color: colors.accent }]}>Total: {totalPct.toFixed(1)}%</Text>
         <Text style={[styles.statsBarText, { color: colors.textSecondary }]}>Ingredientes: {currentDiet.length}</Text>
       </View>
+
+      <TouchableOpacity 
+        style={[styles.templateBtn, { backgroundColor: colors.card }]} 
+        onPress={() => setShowTemplateModal(true)}
+      >
+        <Text style={[styles.templateBtnText, { color: colors.accent }]}>📋 Usar Plantilla</Text>
+      </TouchableOpacity>
 
       <ScrollView style={styles.content}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredientes</Text>
@@ -191,6 +244,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   statsBar: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
   statsBarText: { fontSize: 14, fontWeight: '600' },
+  templateBtn: { marginHorizontal: 15, marginTop: 8, padding: 10, borderRadius: 8, alignItems: 'center' },
+  templateBtnText: { fontSize: 14, fontWeight: '600' },
   complianceBar: { padding: 10, margin: 15, marginBottom: 0, borderRadius: 8 },
   complianceTitle: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
   complianceItems: { flexDirection: 'row', gap: 20 },
@@ -224,6 +279,12 @@ const styles = StyleSheet.create({
   ingredientOptionText: { fontSize: 15, fontWeight: '600' },
   ingredientOptionCategory: { fontSize: 12, marginTop: 2 },
   ingredientOptionNe: { fontSize: 13 },
+  modalSubtitle: { fontSize: 14, textAlign: 'center', marginBottom: 15 },
+  templateList: { maxHeight: 350 },
+  templateOption: { padding: 15, borderBottomWidth: 1 },
+  templateName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  templateDesc: { fontSize: 13, marginBottom: 4 },
+  templateItems: { fontSize: 12 },
   closeModalBtn: { padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 15 },
   closeModalBtnText: { color: '#fff', fontWeight: '600' },
 });

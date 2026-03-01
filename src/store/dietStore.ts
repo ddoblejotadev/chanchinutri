@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, TABLES } from '../lib/supabase';
+import { setAllCustomPrices, getIngredientPrice } from '../data/prices';
 
 export interface Ingredient {
   id: string;
@@ -91,17 +93,26 @@ interface DietState {
   currentDiet: DietItem[];
   savedDiets: SavedDiet[];
   darkMode: boolean;
+  isSyncing: boolean;
+  lastSynced: string | null;
+  syncEnabled: boolean;
   setAnimalType: (type: AnimalType) => void;
   addIngredient: (ingredient: Ingredient) => void;
   updatePercentage: (id: string, pct: number) => void;
   removeIngredient: (id: string) => void;
   clearDiet: () => void;
   loadDiet: (diet: SavedDiet) => void;
-  saveDiet: (name: string, results: { ne: number; lys: number; met: number; thr: number; p: number; dm: number }) => void;
+  saveDiet: (name: string, results: { ne: number; lys: number; met: number; thr: number; p: number; dm: number }) => Promise<void>;
   deleteSaved: (id: string) => void;
   toggleDarkMode: () => void;
   loadFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
+  setFullDiet: (items: DietItem[]) => void;
+  syncToCloud: () => Promise<void>;
+  loadFromCloud: () => Promise<void>;
+  toggleSync: () => void;
+  updatePrice: (id: string, price: number) => Promise<void>;
+  resetPrices: () => Promise<void>;
 }
 
 export const useDietStore = create<DietState>()((set, get) => ({
@@ -109,6 +120,9 @@ export const useDietStore = create<DietState>()((set, get) => ({
   currentDiet: [],
   savedDiets: [],
   darkMode: false,
+  isSyncing: false,
+  lastSynced: null,
+  syncEnabled: true, // Por defecto activado
 
   setAnimalType: (type) => set({ animalType: type }),
 
@@ -134,6 +148,11 @@ export const useDietStore = create<DietState>()((set, get) => ({
     get().saveToStorage();
   },
 
+  setFullDiet: (items) => {
+    set({ currentDiet: items });
+    get().saveToStorage();
+  },
+
   loadDiet: (diet) => {
     set({ 
       currentDiet: diet.items.map(d => ({ ...d })),
@@ -141,8 +160,8 @@ export const useDietStore = create<DietState>()((set, get) => ({
     });
   },
 
-  saveDiet: (name, results) => {
-    const { currentDiet, savedDiets, animalType } = get();
+  saveDiet: async (name, results) => {
+    const { currentDiet, savedDiets, animalType, syncEnabled } = get();
     const newDiet: SavedDiet = {
       id: Date.now().toString(),
       name,
@@ -153,6 +172,27 @@ export const useDietStore = create<DietState>()((set, get) => ({
     };
     set({ savedDiets: [...savedDiets, newDiet] });
     get().saveToStorage();
+    
+    // Sync to cloud if enabled
+    if (syncEnabled) {
+      try {
+        await supabase.from(TABLES.SAVED_DIETS).upsert({
+          id: newDiet.id,
+          name: newDiet.name,
+          items: JSON.stringify(newDiet.items),
+          ne: newDiet.ne,
+          lys: newDiet.lys,
+          met: newDiet.met,
+          thr: newDiet.thr,
+          p: newDiet.p,
+          dm: newDiet.dm,
+          animal_type: newDiet.animalType,
+          created_at: newDiet.createdAt,
+        });
+      } catch (error) {
+        console.error('Error syncing to cloud:', error);
+      }
+    }
   },
 
   deleteSaved: (id) => {
@@ -175,6 +215,13 @@ export const useDietStore = create<DietState>()((set, get) => ({
           darkMode: parsed.darkMode || false,
         });
       }
+      
+      // Load custom prices
+      const pricesData = await AsyncStorage.getItem('evapig-custom-prices');
+      if (pricesData) {
+        const prices = JSON.parse(pricesData);
+        setAllCustomPrices(prices);
+      }
     } catch (e) {
       console.error('Error loading from storage:', e);
     }
@@ -186,6 +233,122 @@ export const useDietStore = create<DietState>()((set, get) => ({
       await AsyncStorage.setItem('evapig-data', JSON.stringify({ savedDiets, darkMode }));
     } catch (e) {
       console.error('Error saving to storage:', e);
+    }
+  },
+
+  toggleSync: () => {
+    const { syncEnabled } = get();
+    set({ syncEnabled: !syncEnabled });
+    // If enabling sync, load from cloud
+    if (!syncEnabled) {
+      get().loadFromCloud();
+    }
+  },
+
+  syncToCloud: async () => {
+    const { savedDiets, isSyncing } = get();
+    if (isSyncing) return;
+    
+    set({ isSyncing: true });
+    try {
+      // Upload all saved diets to cloud
+      for (const diet of savedDiets) {
+        await supabase.from(TABLES.SAVED_DIETS).upsert({
+          id: diet.id,
+          name: diet.name,
+          items: JSON.stringify(diet.items),
+          ne: diet.ne,
+          lys: diet.lys,
+          met: diet.met,
+          thr: diet.thr,
+          p: diet.p,
+          dm: diet.dm,
+          animal_type: diet.animalType,
+          created_at: diet.createdAt,
+        });
+      }
+      set({ lastSynced: new Date().toISOString() });
+    } catch (error) {
+      console.error('Error syncing to cloud:', error);
+    } finally {
+      set({ isSyncing: false });
+    }
+  },
+
+  loadFromCloud: async () => {
+    const { isSyncing } = get();
+    if (isSyncing) return;
+    
+    set({ isSyncing: true });
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.SAVED_DIETS)
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const cloudDiets: SavedDiet[] = data.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items,
+          ne: d.ne,
+          lys: d.lys,
+          met: d.met,
+          thr: d.thr,
+          p: d.p,
+          dm: d.dm,
+          animalType: d.animal_type,
+          createdAt: d.created_at,
+        }));
+        
+        // Merge with local (cloud wins for duplicates)
+        const { savedDiets } = get();
+        const merged = [...savedDiets];
+        
+        for (const cloudDiet of cloudDiets) {
+          const exists = merged.find(d => d.id === cloudDiet.id);
+          if (!exists) {
+            merged.push(cloudDiet);
+          }
+        }
+        
+        set({ savedDiets: merged, lastSynced: new Date().toISOString() });
+        get().saveToStorage();
+      }
+    } catch (error) {
+      console.error('Error loading from cloud:', error);
+    } finally {
+      set({ isSyncing: false });
+    }
+  },
+
+  updatePrice: async (id: string, price: number) => {
+    try {
+      // Get current custom prices
+      const pricesData = await AsyncStorage.getItem('evapig-custom-prices');
+      const prices = pricesData ? JSON.parse(pricesData) : {};
+      
+      // Update price
+      prices[id] = price;
+      
+      // Save to storage
+      await AsyncStorage.setItem('evapig-custom-prices', JSON.stringify(prices));
+      
+      // Update in-memory prices
+      setAllCustomPrices(prices);
+    } catch (error) {
+      console.error('Error updating price:', error);
+    }
+  },
+
+  resetPrices: async () => {
+    try {
+      await AsyncStorage.removeItem('evapig-custom-prices');
+      setAllCustomPrices({});
+    } catch (error) {
+      console.error('Error resetting prices:', error);
     }
   },
 }));

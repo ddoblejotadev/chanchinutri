@@ -42,7 +42,7 @@ describe('EvaPig Calculation Engine', () => {
     it('should calculate weighted average for multiple ingredients', () => {
       const diet: DietItem[] = [
         { id: 'corn', name: 'Maíz', pct: 50 },
-        { id: 'soy', name: 'Soja', pct: 50 },
+        { id: 'soy-meal', name: 'Harina de Soja', pct: 50 },
       ];
       const result = calculateDiet(diet);
       // (2475 * 50 + 2160 * 50) / 100 = 2317.5
@@ -50,7 +50,7 @@ describe('EvaPig Calculation Engine', () => {
     });
 
     it('should calculate lysine correctly', () => {
-      const diet: DietItem[] = [{ id: 'soy', name: 'Soja', pct: 100 }];
+      const diet: DietItem[] = [{ id: 'soy-meal', name: 'Harina de Soja', pct: 100 }];
       const result = calculateDiet(diet);
       expect(result.lys).toBe(24.5);
     });
@@ -58,7 +58,7 @@ describe('EvaPig Calculation Engine', () => {
     it('should calculate methionine correctly', () => {
       const diet: DietItem[] = [
         { id: 'corn', name: 'Maíz', pct: 50 },
-        { id: 'methionine', name: 'Metionina', pct: 50 },
+        { id: 'dl-methionine', name: 'DL-Metionina', pct: 50 },
       ];
       const result = calculateDiet(diet);
       // (1.5 * 50 + 980 * 50) / 100 = 490.75
@@ -79,7 +79,7 @@ describe('EvaPig Calculation Engine', () => {
     it('should calculate phosphorus correctly', () => {
       const diet: DietItem[] = [
         { id: 'corn', name: 'Maíz', pct: 80 },
-        { id: 'soy', name: 'Soja', pct: 20 },
+        { id: 'soy-meal', name: 'Harina de Soja', pct: 20 },
       ];
       const result = calculateDiet(diet);
       // (2.5 * 80 + 6.0 * 20) / 100 = 3.2
@@ -89,7 +89,7 @@ describe('EvaPig Calculation Engine', () => {
     it('should calculate dry matter correctly', () => {
       const diet: DietItem[] = [
         { id: 'corn', name: 'Maíz', pct: 50 },
-        { id: 'oil', name: 'Aceite', pct: 50 },
+        { id: 'soy-oil', name: 'Aceite de Soja', pct: 50 },
       ];
       const result = calculateDiet(diet);
       // (88.5 * 50 + 99.5 * 50) / 100 = 94
@@ -98,7 +98,7 @@ describe('EvaPig Calculation Engine', () => {
 
     it('should handle amino acid supplements correctly', () => {
       const diet: DietItem[] = [
-        { id: 'lysine', name: 'Lisina', pct: 0.5 },
+        { id: 'lysine-hcl', name: 'L-Lisina', pct: 0.5 },
         { id: 'corn', name: 'Maíz', pct: 99.5 },
       ];
       const result = calculateDiet(diet);
@@ -110,9 +110,9 @@ describe('EvaPig Calculation Engine', () => {
       it('should calculate a typical pig grower diet', () => {
         const diet: DietItem[] = [
           { id: 'corn', name: 'Maíz', pct: 60 },
-          { id: 'soy', name: 'Soja', pct: 25 },
+          { id: 'soy-meal', name: 'Harina de Soja', pct: 25 },
           { id: 'wheat', name: 'Trigo', pct: 10 },
-          { id: 'fish', name: 'Pescado', pct: 5 },
+          { id: 'fish-meal', name: 'Harina de Pescado', pct: 5 },
         ];
         
         const result = calculateDiet(diet);

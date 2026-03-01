@@ -1,11 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigation';
+import { RootStackParamList, TabParamList } from '../navigation/AppNavigation';
 import { useDietStore, SavedDiet, ANIMAL_TYPES } from '../store/dietStore';
 import { exportDietToPDF } from '../utils/pdfExport';
 
-type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SavedDiets'> };
+type SavedDietsNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+type Props = { navigation: SavedDietsNavigationProp };
 
 export default function SavedDietsScreen({ navigation }: Props) {
   const { savedDiets, loadDiet, deleteSaved, darkMode, loadFromStorage } = useDietStore();
