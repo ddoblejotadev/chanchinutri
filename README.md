@@ -73,7 +73,7 @@ npm run build:verify
 
 Este comando ejecuta `expo export` para Android y valida que el bundle de produccion pueda generarse sin compilar nativo.
 
-### Gate de calidad (pro)
+### Gate de calidad
 
 ```bash
 npm run quality
@@ -84,23 +84,40 @@ Incluye:
 - typecheck (`tsc --noEmit`)
 - build verify (`expo export`)
 
-Para instalar el hook local de commit (pre-commit):
+### Build APK release
 
 ```bash
-npm run hooks:install
+npm run release:build
 ```
 
-El hook ejecuta `npm run quality:commit` y exige tambien `gga run` antes de permitir el commit.
+Salida esperada:
+- `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
+- `android/app/build/outputs/apk/release/app-x86_64-release.apk`
+- `android/app/build/outputs/apk/release/app-universal-release.apk`
 
-### Build APK
+### Verificar artefactos release
 
 ```bash
-# Generar APK debug
-cd android
-./gradlew assembleDebug
+npm run verify-release -- android/app/build/outputs/apk/release/app-arm64-v8a-release.apk android/app/build/outputs/apk/release/app-x86_64-release.apk android/app/build/outputs/apk/release/app-universal-release.apk
 ```
 
-El APK se generará en: `android/app/build/outputs/apk/debug/`
+Para pruebas en emulador x86_64, instalar `app-x86_64-release.apk` (o `app-universal-release.apk`).
+Para dispositivos fisicos ARM64, instalar `app-arm64-v8a-release.apk` (o `app-universal-release.apk`).
+
+Valida automaticamente:
+- nombre de archivo (rechaza artefactos `debug`)
+- inspeccion interna del APK como ZIP
+- presencia de bundle de runtime (`assets/index.android.bundle` o equivalente valido para Expo/React Native)
+
+### Gate combinado (calidad + artefactos release)
+
+```bash
+npm run gate:release -- android/app/build/outputs/apk/release/app-arm64-v8a-release.apk android/app/build/outputs/apk/release/app-x86_64-release.apk android/app/build/outputs/apk/release/app-universal-release.apk
+```
+
+Politica de artefactos:
+- Permitidos: APKs `*-release.apk` con bundle de runtime de inicio.
+- No permitidos: APKs `*debug*.apk`, APKs sin bundle de runtime, o archivos que no sean `.apk`.
 
 ---
 
