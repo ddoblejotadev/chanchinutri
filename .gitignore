@@ -6,8 +6,12 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-build-check/
 web-build/
 expo-env.d.ts
+
+# SDD local artifacts
+openspec/
 
 # Native
 .kotlin/

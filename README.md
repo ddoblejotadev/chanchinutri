@@ -73,6 +73,25 @@ npm run build:verify
 
 Este comando ejecuta `expo export` para Android y valida que el bundle de produccion pueda generarse sin compilar nativo.
 
+### Gate de calidad (pro)
+
+```bash
+npm run quality
+```
+
+Incluye:
+- tests (`jest --runInBand`)
+- typecheck (`tsc --noEmit`)
+- build verify (`expo export`)
+
+Para instalar el hook local de commit (pre-commit):
+
+```bash
+npm run hooks:install
+```
+
+El hook ejecuta `npm run quality:commit` y exige tambien `gga run` antes de permitir el commit.
+
 ### Build APK
 
 ```bash
