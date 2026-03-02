@@ -9,7 +9,7 @@ import { dietTemplates, getTemplatesByAnimalType, DietTemplate } from '../data/t
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'CreateDiet'> };
 
-export default function CreateDietScreen({ navigation }: Props) {
+export default function CreateDietScreen({ navigation }: Props): React.JSX.Element {
   const [showModal, setShowModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -22,7 +22,7 @@ export default function CreateDietScreen({ navigation }: Props) {
   
   useEffect(() => {
     loadFromStorage();
-  }, []);
+  }, [loadFromStorage]);
 
   const totalPct = getTotalPercentage(currentDiet);
   const filteredIngredients = ingredients.filter(i => {

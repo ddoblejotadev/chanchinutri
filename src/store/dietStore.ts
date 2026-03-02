@@ -69,6 +69,23 @@ export interface SavedDiet {
   createdAt: string;
 }
 
+interface CloudDietRow {
+  id: string;
+  name: string;
+  items: string | DietItem[];
+  ne: number;
+  lys: number;
+  met: number;
+  thr: number;
+  trp?: number;
+  val?: number;
+  ile?: number;
+  p: number;
+  dm: number;
+  animal_type: string;
+  created_at: string;
+}
+
 export type AnimalType = 'lechon' | 'crecimiento' | 'cerda' | 'reproductor';
 
 export interface NutritionalRequirements {
@@ -344,7 +361,8 @@ export const useDietStore = create<DietState>()((set, get) => ({
       if (error) throw error;
       
       if (data && data.length > 0) {
-        const cloudDiets: SavedDiet[] = data.map((d: any) => ({
+        const cloudRows = data as CloudDietRow[];
+        const cloudDiets: SavedDiet[] = cloudRows.map((d) => ({
           id: d.id,
           name: d.name,
           items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items,
@@ -352,9 +370,9 @@ export const useDietStore = create<DietState>()((set, get) => ({
           lys: d.lys,
           met: d.met,
           thr: d.thr,
-          trp: d.trp || 0,
-          val: d.val || 0,
-          ile: d.ile || 0,
+          trp: d.trp ?? 0,
+          val: d.val ?? 0,
+          ile: d.ile ?? 0,
           p: d.p,
           dm: d.dm,
           animalType: d.animal_type,

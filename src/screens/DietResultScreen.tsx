@@ -7,10 +7,36 @@ import { exportDietToPDF } from '../utils/pdfExport';
 import { calculateDietCost, calculateCostPerTonne } from '../data/prices';
 import { ingredients } from '../data/ingredients';
 
-export default function DietResultScreen() {
+type ThemeColors = {
+  bg: string;
+  card: string;
+  text: string;
+  textSecondary: string;
+  accent: string;
+  warning: string;
+  error: string;
+  success: string;
+};
+
+type ComplianceItemProps = {
+  label: string;
+  value: number;
+  target: string;
+  unit: string;
+  status: string;
+  colors: ThemeColors;
+};
+
+type ValueCardProps = {
+  label: string;
+  value: number;
+  unit: string;
+  colors: ThemeColors;
+};
+
+export default function DietResultScreen(): React.JSX.Element {
   const [dietName, setDietName] = useState('');
   const [budget, setBudget] = useState('');
-  const [diet, setDiet] = useState<any>(null);
   const { currentDiet, savedDiets, saveDiet, clearDiet, animalType, darkMode, loadDiet, updatePrice } = useDietStore();
   
   const results = calculateDiet(currentDiet);
@@ -68,7 +94,7 @@ export default function DietResultScreen() {
   };
 
   // Helper components for simplified display
-  const ComplianceItem = ({ label, value, target, unit, status, colors }: any) => {
+  const ComplianceItem = ({ label, value, target, unit, status, colors }: ComplianceItemProps): React.JSX.Element => {
     const statusColor = getComplianceColor(status);
     return (
       <View style={styles.complianceItem}>
@@ -79,7 +105,7 @@ export default function DietResultScreen() {
     );
   };
 
-  const ValueCard = ({ label, value, unit, colors }: any) => (
+  const ValueCard = ({ label, value, unit, colors }: ValueCardProps): React.JSX.Element => (
     <View style={[styles.valueCard, { backgroundColor: colors.card }]}>
       <Text style={[styles.valueLabel, { color: colors.textSecondary }]}>{label}</Text>
       <Text style={[styles.valueText, { color: colors.text }]}>{value} {unit}</Text>
