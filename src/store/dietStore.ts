@@ -3,6 +3,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, TABLES } from '../lib/supabase';
 import { setAllCustomPrices, getIngredientPrice } from '../data/prices';
 
+export interface InclusionLimits {
+  minPct?: number;
+  maxPct?: number;
+}
+
+export const INCLUSION_WARNING_SOURCE = {
+  INGREDIENT_INCLUSION: 'ingredient-inclusion',
+} as const;
+
+export type InclusionWarningSource = (typeof INCLUSION_WARNING_SOURCE)[keyof typeof INCLUSION_WARNING_SOURCE];
+
+export const INCLUSION_WARNING_REASON = {
+  BELOW_MIN: 'below-min',
+  ABOVE_MAX: 'above-max',
+} as const;
+
+export type InclusionWarningReason = (typeof INCLUSION_WARNING_REASON)[keyof typeof INCLUSION_WARNING_REASON];
+
+export interface IngredientInclusionWarning {
+  source: InclusionWarningSource;
+  reason: InclusionWarningReason;
+  ingredientId: string;
+  ingredientName: string;
+  actualPct: number;
+  limitPct: number;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -14,6 +41,9 @@ export interface Ingredient {
   trp: number;
   p: number;
   dm: number;
+  val: number;
+  ile: number;
+  inclusionLimits?: InclusionLimits;
 }
 
 export interface DietItem {
@@ -31,6 +61,8 @@ export interface SavedDiet {
   met: number;
   thr: number;
   trp: number;
+  val: number;
+  ile: number;
   p: number;
   dm: number;
   animalType: string;
@@ -46,6 +78,8 @@ export interface NutritionalRequirements {
   thr: { min: number; max: number };
   trp: { min: number; max: number };
   p: { min: number; max: number };
+  val: { min: number; max: number };
+  ile: { min: number; max: number };
 }
 
 export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: NutritionalRequirements }> = {
@@ -57,6 +91,8 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
       met: { min: 4, max: 6 },
       thr: { min: 8, max: 10 },
       trp: { min: 2.0, max: 3.0 },
+      val: { min: 6.0, max: 8.0 },
+      ile: { min: 5.0, max: 7.0 },
       p: { min: 5, max: 7 },
     },
   },
@@ -68,6 +104,8 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
       met: { min: 3, max: 5 },
       thr: { min: 6, max: 8 },
       trp: { min: 1.5, max: 2.5 },
+      val: { min: 4.5, max: 6.0 },
+      ile: { min: 3.8, max: 5.0 },
       p: { min: 4, max: 6 },
     },
   },
@@ -79,6 +117,8 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
       met: { min: 2, max: 4 },
       thr: { min: 4, max: 6 },
       trp: { min: 1.2, max: 2.0 },
+      val: { min: 3.5, max: 5.0 },
+      ile: { min: 3.0, max: 4.5 },
       p: { min: 3, max: 5 },
     },
   },
@@ -90,6 +130,8 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
       met: { min: 3, max: 4 },
       thr: { min: 5, max: 7 },
       trp: { min: 1.8, max: 2.8 },
+      val: { min: 4.0, max: 5.5 },
+      ile: { min: 3.5, max: 5.0 },
       p: { min: 3, max: 5 },
     },
   },
@@ -109,7 +151,7 @@ interface DietState {
   removeIngredient: (id: string) => void;
   clearDiet: () => void;
   loadDiet: (diet: SavedDiet) => void;
-  saveDiet: (name: string, results: { ne: number; lys: number; met: number; thr: number; trp: number; p: number; dm: number }) => Promise<void>;
+  saveDiet: (name: string, results: { ne: number; lys: number; met: number; thr: number; trp: number; val: number; ile: number; p: number; dm: number }) => Promise<void>;
   deleteSaved: (id: string) => void;
   toggleDarkMode: () => void;
   loadFromStorage: () => Promise<void>;
@@ -192,6 +234,8 @@ export const useDietStore = create<DietState>()((set, get) => ({
           met: newDiet.met,
           thr: newDiet.thr,
           trp: newDiet.trp,
+          val: newDiet.val,
+          ile: newDiet.ile,
           p: newDiet.p,
           dm: newDiet.dm,
           animal_type: newDiet.animalType,
@@ -269,6 +313,9 @@ export const useDietStore = create<DietState>()((set, get) => ({
           lys: diet.lys,
           met: diet.met,
           thr: diet.thr,
+          trp: diet.trp,
+          val: diet.val,
+          ile: diet.ile,
           p: diet.p,
           dm: diet.dm,
           animal_type: diet.animalType,
@@ -306,6 +353,8 @@ export const useDietStore = create<DietState>()((set, get) => ({
           met: d.met,
           thr: d.thr,
           trp: d.trp || 0,
+          val: d.val || 0,
+          ile: d.ile || 0,
           p: d.p,
           dm: d.dm,
           animalType: d.animal_type,

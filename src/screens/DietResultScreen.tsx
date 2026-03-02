@@ -26,6 +26,8 @@ export default function DietResultScreen() {
   const budgetValue = parseFloat(budget) || 0;
   const isOverBudget = budgetValue > 0 && costPerKg > budgetValue;
   const budgetDiff = budgetValue > 0 ? costPerKg - budgetValue : 0;
+  const inclusionWarnings = validation.warningDetails;
+  const nutritionWarnings = validation.warnings.filter((warning) => !warning.startsWith('Inclusion '));
 
   const colors = darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
@@ -132,12 +134,30 @@ export default function DietResultScreen() {
       </View>
 
       {/* Warnings */}
-      {validation.warnings.length > 0 && (
+      {(validation.warnings.length > 0 || inclusionWarnings.length > 0) && (
         <View style={[styles.warningBox, { backgroundColor: colors.warning + '20' }]}>
           <Text style={[styles.warningTitle, { color: colors.warning }]}>⚠️ Recomendaciones:</Text>
-          {validation.warnings.map((w, i) => (
-            <Text key={i} style={[styles.warningText, { color: colors.textSecondary }]}>• {w}</Text>
-          ))}
+          {inclusionWarnings.length > 0 && (
+            <>
+              <Text style={[styles.warningSectionTitle, { color: colors.text }]}>Límites de inclusión</Text>
+              {inclusionWarnings.map((warning) => {
+                const direction = warning.reason === 'below-min' ? 'por debajo' : 'por encima';
+                return (
+                  <Text key={`${warning.ingredientId}-${warning.reason}`} style={[styles.warningText, { color: colors.textSecondary }]}>
+                    • {warning.ingredientName}: {warning.actualPct}% {direction} de {warning.limitPct}%
+                  </Text>
+                );
+              })}
+            </>
+          )}
+          {nutritionWarnings.length > 0 && (
+            <>
+              <Text style={[styles.warningSectionTitle, { color: colors.text }]}>Balance nutricional</Text>
+              {nutritionWarnings.map((w, i) => (
+                <Text key={i} style={[styles.warningText, { color: colors.textSecondary }]}>• {w}</Text>
+              ))}
+            </>
+          )}
         </View>
       )}
       
@@ -247,6 +267,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: '#E8F5E9', marginTop: 5 },
   warningBox: { margin: 15, padding: 15, borderRadius: 8 },
   warningTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8 },
+  warningSectionTitle: { fontSize: 12, fontWeight: '700', marginTop: 4, marginBottom: 4 },
   warningText: { fontSize: 12, marginBottom: 3 },
   content: { padding: 15 },
   resultCard: { padding: 15, borderRadius: 8, marginBottom: 10 },

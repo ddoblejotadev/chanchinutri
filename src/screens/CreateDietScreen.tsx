@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal,
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
-import { ingredients, CATEGORIES } from '../data/ingredients';
+import { ingredients, CATEGORIES, getIngredientById } from '../data/ingredients';
 import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
 import { dietTemplates, getTemplatesByAnimalType, DietTemplate } from '../data/templates';
 
@@ -33,6 +33,10 @@ export default function CreateDietScreen({ navigation }: Props) {
 
   const validation = validateDiet(currentDiet, animalType);
   const compliance = getComplianceStatus(currentDiet, animalType);
+  const inclusionWarningByIngredient = validation.warningDetails.reduce((acc, warning) => {
+    acc[warning.ingredientId] = warning;
+    return acc;
+  }, {} as Record<string, (typeof validation.warningDetails)[number]>);
 
   const colors = darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
@@ -206,19 +210,65 @@ export default function CreateDietScreen({ navigation }: Props) {
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Tocá "+ Agregar" para comenzar</Text>
         ) : (
           currentDiet.map((item, idx) => (
-            <View key={idx} style={[styles.dietItem, { backgroundColor: colors.card }]}>
-              <Text style={[styles.dietItemName, { color: colors.text }]}>{item.name}</Text>
-              <TextInput
-                style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
-                value={item.pct.toString()}
-                keyboardType="numeric"
-                onChangeText={(text) => updatePercentage(item.id, parseInt(text) || 0)}
-              />
-              <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
-              <TouchableOpacity onPress={() => removeIngredient(item.id)}>
-                <Text style={[styles.removeBtn, { color: colors.error }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
+            (() => {
+              const ingredient = getIngredientById(item.id);
+              const limits = ingredient?.inclusionLimits;
+              const inclusionWarning = inclusionWarningByIngredient[item.id];
+              const hasInclusionWarning = Boolean(inclusionWarning);
+
+              const rangeText = limits
+                ? `${limits.minPct ?? 0}% - ${limits.maxPct ?? 100}%`
+                : null;
+
+              const warningText = inclusionWarning
+                ? inclusionWarning.reason === 'below-min'
+                  ? `Debajo del minimo (${inclusionWarning.limitPct}%)`
+                  : `Encima del maximo (${inclusionWarning.limitPct}%)`
+                : null;
+
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.dietItem,
+                    { backgroundColor: colors.card },
+                    hasInclusionWarning && {
+                      borderWidth: 1,
+                      borderColor: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
+                    },
+                  ]}
+                >
+                  <View style={styles.dietItemInfo}>
+                    <Text style={[styles.dietItemName, { color: colors.text }]}>{item.name}</Text>
+                    {rangeText && (
+                      <Text style={[styles.limitHint, { color: colors.textSecondary }]}>Rango recomendado: {rangeText}</Text>
+                    )}
+                    {warningText && (
+                      <Text
+                        style={[
+                          styles.limitWarning,
+                          {
+                            color: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
+                          },
+                        ]}
+                      >
+                        {warningText}
+                      </Text>
+                    )}
+                  </View>
+                  <TextInput
+                    style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
+                    value={item.pct.toString()}
+                    keyboardType="numeric"
+                    onChangeText={(text) => updatePercentage(item.id, parseInt(text) || 0)}
+                  />
+                  <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
+                  <TouchableOpacity onPress={() => removeIngredient(item.id)}>
+                    <Text style={[styles.removeBtn, { color: colors.error }]}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })()
           ))
         )}
 
@@ -256,7 +306,10 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
   emptyText: { fontStyle: 'italic', textAlign: 'center', padding: 20 },
   dietItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginBottom: 8 },
-  dietItemName: { flex: 1, fontSize: 14 },
+  dietItemInfo: { flex: 1, marginRight: 8 },
+  dietItemName: { fontSize: 14, fontWeight: '600' },
+  limitHint: { fontSize: 11, marginTop: 2 },
+  limitWarning: { fontSize: 11, marginTop: 2, fontWeight: '600' },
   pctInput: { width: 55, borderRadius: 5, padding: 6, textAlign: 'center', marginRight: 5 },
   pctSign: { marginRight: 12 },
   removeBtn: { fontSize: 18, padding: 5 },

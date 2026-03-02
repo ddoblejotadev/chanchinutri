@@ -65,6 +65,14 @@ npm install
 npm start
 ```
 
+### Verificacion de build (CI-friendly)
+
+```bash
+npm run build:verify
+```
+
+Este comando ejecuta `expo export` para Android y valida que el bundle de produccion pueda generarse sin compilar nativo.
+
 ### Build APK
 
 ```bash
