@@ -2,8 +2,141 @@
  * Tests for EvaPig Calculation Engine
  */
 
-import { calculateDiet, getTotalPercentage, DietResults } from '../src/engine/calculations';
-import { DietItem } from '../src/store/dietStore';
+import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus, DietResults } from '../src/engine/calculations';
+import { DietItem, Ingredient, NutritionalRequirements, SavedDiet, ANIMAL_TYPES } from '../src/store/dietStore';
+
+describe('TRP-001: Ingredient interface has trp field', () => {
+  it('should have trp field in Ingredient type', () => {
+    const ingredient: Ingredient = {
+      id: 'test',
+      name: 'Test Ingredient',
+      category: 'Test',
+      ne: 2000,
+      lys: 5,
+      met: 2,
+      thr: 3,
+      p: 4,
+      dm: 85,
+      trp: 1.0,
+    };
+    expect(ingredient.trp).toBe(1.0);
+  });
+});
+
+describe('TRP-002: NutritionalRequirements interface has trp field', () => {
+  it('should have trp field in NutritionalRequirements type', () => {
+    const requirements: NutritionalRequirements = {
+      ne: { min: 2400, max: 2600 },
+      lys: { min: 12, max: 16 },
+      met: { min: 4, max: 6 },
+      thr: { min: 8, max: 10 },
+      p: { min: 5, max: 7 },
+      trp: { min: 2.0, max: 3.0 },
+    };
+    expect(requirements.trp.min).toBe(2.0);
+    expect(requirements.trp.max).toBe(3.0);
+  });
+});
+
+describe('TRP-003: SavedDiet interface has trp field', () => {
+  it('should have trp field in SavedDiet type', () => {
+    const savedDiet: SavedDiet = {
+      id: '1',
+      name: 'Test Diet',
+      items: [],
+      ne: 2400,
+      lys: 12,
+      met: 4,
+      thr: 8,
+      p: 5,
+      dm: 85,
+      trp: 2.5,
+      animalType: 'lechon',
+      createdAt: '2024-01-01',
+    };
+    expect(savedDiet.trp).toBe(2.5);
+  });
+});
+
+describe('TRP-004: ANIMAL_TYPES has trp requirements', () => {
+  it('should have trp requirements for lechon', () => {
+    expect(ANIMAL_TYPES.lechon.requirements.trp.min).toBe(2.0);
+    expect(ANIMAL_TYPES.lechon.requirements.trp.max).toBe(3.0);
+  });
+
+  it('should have trp requirements for crecimiento', () => {
+    expect(ANIMAL_TYPES.crecimiento.requirements.trp.min).toBe(1.5);
+    expect(ANIMAL_TYPES.crecimiento.requirements.trp.max).toBe(2.5);
+  });
+
+  it('should have trp requirements for cerda', () => {
+    expect(ANIMAL_TYPES.cerda.requirements.trp.min).toBe(1.2);
+    expect(ANIMAL_TYPES.cerda.requirements.trp.max).toBe(2.0);
+  });
+
+  it('should have trp requirements for reproductor', () => {
+    expect(ANIMAL_TYPES.reproductor.requirements.trp.min).toBe(1.8);
+    expect(ANIMAL_TYPES.reproductor.requirements.trp.max).toBe(2.8);
+  });
+});
+
+describe('TRP-008: validateDiet - Tryptophan warnings', () => {
+  it('should warn when tryptophan is below minimum for lechon', () => {
+    const diet: DietItem[] = [{ id: 'corn', name: 'Maíz', pct: 100 }];
+    const result = validateDiet(diet, 'lechon');
+    expect(result.warnings).toContain('Triptófano bajo: 0.6 < 2 g/kg');
+  });
+
+  it('should warn when tryptophan is above maximum for lechon', () => {
+    const diet: DietItem[] = [
+      { id: 'l-tryptophan', name: 'L-Triptófano', pct: 1 },
+      { id: 'corn', name: 'Maíz', pct: 99 },
+    ];
+    const result = validateDiet(diet, 'lechon');
+    expect(result.warnings.some(w => w.includes('alto'))).toBe(true);
+  });
+
+  it('should not warn when tryptophan is within range', () => {
+    const diet: DietItem[] = [
+      { id: 'soy-meal', name: 'Harina de Soja', pct: 40 },
+      { id: 'corn', name: 'Maíz', pct: 60 },
+    ];
+    const result = validateDiet(diet, 'lechon');
+    expect(result.warnings.some(w => w.includes('Triptófano'))).toBe(false);
+  });
+});
+
+describe('TRP-009: getComplianceStatus - Tryptophan color codes', () => {
+  it('should return yellow when below minimum', () => {
+    const diet: DietItem[] = [{ id: 'corn', name: 'Maíz', pct: 100 }];
+    const status = getComplianceStatus(diet, 'lechon');
+    expect(status.trp).toBe('yellow');
+  });
+
+  it('should return red when above maximum', () => {
+    const diet: DietItem[] = [
+      { id: 'l-tryptophan', name: 'L-Triptófano', pct: 1 },
+      { id: 'corn', name: 'Maíz', pct: 99 },
+    ];
+    const status = getComplianceStatus(diet, 'lechon');
+    expect(status.trp).toBe('red');
+  });
+
+  it('should return green when within range', () => {
+    const diet: DietItem[] = [
+      { id: 'soy-meal', name: 'Harina de Soja', pct: 40 },
+      { id: 'corn', name: 'Maíz', pct: 60 },
+    ];
+    const status = getComplianceStatus(diet, 'lechon');
+    expect(status.trp).toBe('green');
+  });
+
+  it('should return gray for unknown animal type', () => {
+    const diet: DietItem[] = [{ id: 'corn', name: 'Maíz', pct: 100 }];
+    const status = getComplianceStatus(diet, 'unknown');
+    expect(status.trp).toBe('gray');
+  });
+});
 
 describe('EvaPig Calculation Engine', () => {
   

@@ -6,12 +6,13 @@ export interface DietResults {
   lys: number;
   met: number;
   thr: number;
+  trp: number;
   p: number;
   dm: number;
 }
 
 export function calculateDiet(diet: DietItem[]): DietResults {
-  let ne = 0, lys = 0, met = 0, thr = 0, p = 0, dm = 0;
+  let ne = 0, lys = 0, met = 0, thr = 0, trp = 0, p = 0, dm = 0;
 
   diet.forEach(item => {
     const ing = getIngredientById(item.id);
@@ -20,6 +21,7 @@ export function calculateDiet(diet: DietItem[]): DietResults {
       lys += ing.lys * item.pct / 100;
       met += ing.met * item.pct / 100;
       thr += ing.thr * item.pct / 100;
+      trp += ing.trp * item.pct / 100;
       p += ing.p * item.pct / 100;
       dm += ing.dm * item.pct / 100;
     }
@@ -30,6 +32,7 @@ export function calculateDiet(diet: DietItem[]): DietResults {
     lys: Math.round(lys * 100) / 100,
     met: Math.round(met * 100) / 100,
     thr: Math.round(thr * 100) / 100,
+    trp: Math.round(trp * 100) / 100,
     p: Math.round(p * 100) / 100,
     dm: Math.round(dm * 10) / 10,
   };
@@ -70,15 +73,22 @@ export function validateDiet(diet: DietItem[], animalType: string): { valid: boo
     warnings.push(`Fósforo alto: ${results.p} > ${requirements.p.max} g/kg`);
   }
 
+  // Trp validation
+  if (results.trp < requirements.trp.min) {
+    warnings.push(`Triptófano bajo: ${results.trp} < ${requirements.trp.min} g/kg`);
+  } else if (results.trp > requirements.trp.max) {
+    warnings.push(`Triptófano alto: ${results.trp} > ${requirements.trp.max} g/kg`);
+  }
+
   return { valid: warnings.length === 0, warnings };
 }
 
-export function getComplianceStatus(diet: DietItem[], animalType: string): { ne: string; lys: string; p: string } {
+export function getComplianceStatus(diet: DietItem[], animalType: string): { ne: string; lys: string; p: string; trp: string } {
   const results = calculateDiet(diet);
   const requirements = ANIMAL_TYPES[animalType as keyof typeof ANIMAL_TYPES]?.requirements;
   
   if (!requirements) {
-    return { ne: 'gray', lys: 'gray', p: 'gray' };
+    return { ne: 'gray', lys: 'gray', p: 'gray', trp: 'gray' };
   }
 
   const status = {
@@ -88,6 +98,8 @@ export function getComplianceStatus(diet: DietItem[], animalType: string): { ne:
          results.lys < requirements.lys.min ? 'yellow' : 'red',
     p: results.p >= requirements.p.min && results.p <= requirements.p.max ? 'green' : 
        results.p < requirements.p.min ? 'yellow' : 'red',
+    trp: results.trp >= requirements.trp.min && results.trp <= requirements.trp.max ? 'green' : 
+         results.trp < requirements.trp.min ? 'yellow' : 'red',
   };
 
   return status;
