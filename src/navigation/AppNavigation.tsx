@@ -13,7 +13,6 @@ export type RootStackParamList = {
   MainTabs: undefined;
   CreateDiet: undefined;
   DietResult: undefined;
-  PriceSettings: undefined;
 };
 
 export type TabParamList = {
@@ -75,20 +74,11 @@ function MainTabs() {
       />
       <Tab.Screen 
         name="Settings" 
-        component={SettingsPlaceholder} 
+        component={PriceSettingsScreen} 
         options={{ title: 'Ajustes' }}
       />
     </Tab.Navigator>
   );
-}
-
-// Settings placeholder - redirects to PriceSettings
-import { useEffect } from 'react';
-function SettingsPlaceholder({ navigation }: any) {
-  useEffect(() => {
-    navigation.navigate('PriceSettings');
-  }, []);
-  return null;
 }
 
 export default function AppNavigation() {
@@ -104,7 +94,6 @@ export default function AppNavigation() {
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="CreateDiet" component={CreateDietScreen} options={{ title: 'Crear Dieta' }} />
         <Stack.Screen name="DietResult" component={DietResultScreen} options={{ title: 'Resultados' }} />
-        <Stack.Screen name="PriceSettings" component={PriceSettingsScreen} options={{ title: 'Precios' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

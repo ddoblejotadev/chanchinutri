@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore } from '../store/dietStore';
 import { defaultPrices, getIngredientPrice } from '../data/prices';
 import { ingredients } from '../data/ingredients';
-
-type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'PriceSettings'> };
 
 // Only show prices for ingredients that have a price
 const ingredientsWithPrices = ingredients.filter(i => 
   defaultPrices.some(p => p.id === i.id)
 );
 
-export default function PriceSettingsScreen({ navigation }: Props) {
+export default function PriceSettingsScreen() {
   const { darkMode, updatePrice, resetPrices } = useDietStore();
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
