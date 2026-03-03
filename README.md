@@ -84,22 +84,6 @@ Incluye:
 - typecheck (`tsc --noEmit`)
 - build verify (`expo export`)
 
-### Gate de pre-commit (eficiente + seguro)
-
-Instalar hooks una vez por clon:
-
-```bash
-npm run hooks:install
-```
-
-Comportamiento del pre-commit:
-- `quality:base` se ejecuta solo cuando hay staged files de codigo/config (src, tests, scripts, mobile y configs clave).
-- `gga run` es opcional en local: si `gga` no esta instalado, el commit sigue; si falla, solo bloquea con `GGA_STRICT=1`.
-- Para modo estricto local: `GGA_STRICT=1 git commit ...`.
-- En PR/CI la seguridad sigue siendo obligatoria con checks de `Quality Gate` + `GitGuardian`.
-
-Esto mantiene eficiencia local sin bajar el nivel de seguridad en integracion continua.
-
 ### Build APK release
 
 ```bash
@@ -107,14 +91,15 @@ npm run release:build
 ```
 
 Salida esperada:
-- `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
-- `android/app/build/outputs/apk/release/app-x86_64-release.apk`
-- `android/app/build/outputs/apk/release/app-universal-release.apk`
+- `android/app/build/outputs/apk/release/app-release.apk`
+
+Notas:
+- Las variantes por ABI (por ejemplo `app-arm64-v8a-release.apk`, `app-x86_64-release.apk` o `app-universal-release.apk`) dependen de la configuracion activa en Gradle.
 
 ### Verificar artefactos release
 
 ```bash
-npm run verify-release -- android/app/build/outputs/apk/release/app-arm64-v8a-release.apk android/app/build/outputs/apk/release/app-x86_64-release.apk android/app/build/outputs/apk/release/app-universal-release.apk
+npm run verify-release -- android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Para pruebas en emulador x86_64, instalar `app-x86_64-release.apk` (o `app-universal-release.apk`).
@@ -128,7 +113,7 @@ Valida automaticamente:
 ### Gate combinado (calidad + artefactos release)
 
 ```bash
-npm run gate:release -- android/app/build/outputs/apk/release/app-arm64-v8a-release.apk android/app/build/outputs/apk/release/app-x86_64-release.apk android/app/build/outputs/apk/release/app-universal-release.apk
+npm run gate:release -- android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Politica de artefactos:

@@ -9,14 +9,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "release:build": "node scripts/build-android-release.js",
-    "release:publish": "node scripts/release-publish.js",
     "verify-release": "node scripts/verify-release-artifact.js",
     "gate:release": "npm run quality:base && npm run verify-release",
     "build:verify": "expo export --platform android --output-dir dist-build-check",
     "quality:base": "npm test -- --runInBand && npx tsc --noEmit && npm run build:verify",
-    "quality": "npm run quality:base",
-    "quality:commit": "node scripts/pre-commit-gate.js",
-    "hooks:install": "powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1"
+    "quality": "npm run quality:base"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
