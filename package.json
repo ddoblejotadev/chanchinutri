@@ -9,6 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "release:build": "node scripts/build-android-release.js",
+    "release:publish": "node scripts/release-publish.js",
     "verify-release": "node scripts/verify-release-artifact.js",
     "gate:release": "npm run quality:base && npm run verify-release",
     "build:verify": "expo export --platform android --output-dir dist-build-check",
