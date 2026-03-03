@@ -20,8 +20,8 @@ Calcula energía neta, aminoácidos digestibles, fósforo y costos de dietas por
 | Característica | Descripción |
 |----------------|-------------|
 | 🧮 **Cálculo Nutricional** | NE, Lisina, Metionina, Treonina, Fósforo, Materia Seca |
-| 🥕 **44 Ingredientes** | Cereales, oleaginosas, subproductos, animales, lácteos, minerales 💰 **Cost, aminoácidos |
-|os en CLP** | Calculadora de costos por kg y tonelada |
+| 🥕 **44 Ingredientes** | Cereales, oleaginosas, subproductos, animales, lacteos y minerales |
+| 💰 **Costos en CLP** | Calculadora de costos por kg y tonelada |
 | 📋 **Plantillas** | Dietas predefinidas para lechones, crecimiento, cerdas y reproductores |
 | 📊 **Gráficos** | Visualización de distribución de ingredientes |
 | ☁️ **Sync en la Nube** | Sincronización con Supabase |
@@ -83,6 +83,22 @@ Incluye:
 - tests (`jest --runInBand`)
 - typecheck (`tsc --noEmit`)
 - build verify (`expo export`)
+
+### Gate de pre-commit (eficiente + seguro)
+
+Instalar hooks una vez por clon:
+
+```bash
+npm run hooks:install
+```
+
+Comportamiento del pre-commit:
+- `quality:base` se ejecuta solo cuando hay staged files de codigo/config (src, tests, scripts, mobile y configs clave).
+- `gga run` es opcional en local: si `gga` no esta instalado, el commit sigue; si falla, solo bloquea con `GGA_STRICT=1`.
+- Para modo estricto local: `GGA_STRICT=1 git commit ...`.
+- En PR/CI la seguridad sigue siendo obligatoria con checks de `Quality Gate` + `GitGuardian`.
+
+Esto mantiene eficiencia local sin bajar el nivel de seguridad en integracion continua.
 
 ### Build APK release
 

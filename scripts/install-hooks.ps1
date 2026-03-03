@@ -17,10 +17,10 @@ $hookContent = @'
 #!/usr/bin/env sh
 set -e
 
-npm run quality:commit
+node scripts/pre-commit-gate.js
 '@
 
 Set-Content -Path $preCommitPath -Value $hookContent -Encoding ascii
 
 Write-Host "Pre-commit hook instalado en $preCommitPath"
-Write-Host "Gate activo: test + typecheck + build:verify + gga run"
+Write-Host "Gate activo: quality condicional por staged files + GGA opcional local (estricto con GGA_STRICT=1)"

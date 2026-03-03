@@ -14,7 +14,7 @@
     "build:verify": "expo export --platform android --output-dir dist-build-check",
     "quality:base": "npm test -- --runInBand && npx tsc --noEmit && npm run build:verify",
     "quality": "npm run quality:base",
-    "quality:commit": "npm run quality:base && cmd /c gga run",
+    "quality:commit": "node scripts/pre-commit-gate.js",
     "hooks:install": "powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1"
   },
   "dependencies": {
