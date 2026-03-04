@@ -1,5 +1,5 @@
 /**
- * Tests for EvaPig Calculation Engine
+ * Tests for ChanchiNutri Calculation Engine
  */
 
 import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus, DietResults } from '../src/engine/calculations';
@@ -396,7 +396,7 @@ describe('VAL-005: DietResults interface has val and ile fields', () => {
   });
 });
 
-describe('EvaPig Calculation Engine', () => {
+describe('ChanchiNutri Calculation Engine', () => {
   
   describe('getTotalPercentage', () => {
     it('should return 0 for empty diet', () => {
