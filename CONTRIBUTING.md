@@ -7,6 +7,7 @@ Guia para contributors y desarrolladores que trabajan en ChanchiNutri.
 - [Development Setup](#development-setup)
 - [Project Structure](#project-structure)
 - [Quality Gates and Testing](#quality-gates-and-testing)
+- [Branch and Review Policy](#branch-and-review-policy)
 - [Release Process](#release-process)
 - [Code Standards](#code-standards)
 - [Pull Request Checklist](#pull-request-checklist)
@@ -91,6 +92,27 @@ npm run verify-release -- android/app/build/outputs/apk/release/app-universal-re
 npm run gate:release -- android/app/build/outputs/apk/release/app-universal-release.apk
 ```
 
+## Branch and Review Policy
+
+Repositorio configurado para colaboracion segura:
+
+- Rama protegida: `master`
+- Merge permitido: `squash` (sin merge commit, sin rebase merge)
+- PR obligatorio para entrar a `master`
+- CI obligatorio en PR: check `quality`
+- Requiere 1 aprobacion minima
+- Requiere resolver conversaciones antes de merge
+- Requiere review de CODEOWNERS
+- Se bloquea force-push y borrado de rama protegida
+- Se elimina la rama del PR automaticamente al merge
+
+Flujo recomendado por cambio:
+
+1. Crear rama corta: `feat/...`, `fix/...`, `docs/...`
+2. Abrir Pull Request contra `master`
+3. Esperar CI + aprobacion
+4. Merge por squash
+
 ## Release Process
 
 Sigue este flujo para releases versionadas:
@@ -134,10 +156,12 @@ Estas reglas son obligatorias y se validan en revision:
 - [ ] El alcance es claro, pequeno y revisable.
 - [ ] Se agregaron/actualizaron tests si cambia comportamiento.
 - [ ] `npm run quality` pasa localmente.
+- [ ] El check `quality` pasa en GitHub Actions.
 - [ ] No hay secretos ni credenciales en el diff.
 - [ ] No hay dead code ni imports sin usar.
 - [ ] README/docs se actualizaron si cambia UX, release o setup.
 - [ ] Si hubo cambios de navegacion, se incluyeron regression tests de back-navigation.
+- [ ] El PR tiene aprobacion del CODEOWNER requerido.
 
 ## Reporting Bugs
 

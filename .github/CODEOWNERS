@@ -1,0 +1,10 @@
+# Default owner for all files
+* @ddoblejotadev
+
+# Core app ownership by area
+src/navigation/ @ddoblejotadev
+src/store/ @ddoblejotadev
+src/engine/ @ddoblejotadev
+src/screens/ @ddoblejotadev
+scripts/ @ddoblejotadev
+landing/ @ddoblejotadev
