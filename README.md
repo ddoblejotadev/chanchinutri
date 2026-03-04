@@ -41,6 +41,39 @@ Para desarrollo diario no necesitás backend local: la app funciona en modo loca
 - Navegacion con React Navigation (tabs + stack)
 - Testing con Jest
 
+## 📖 Uso rapido
+
+1. Selecciona el tipo de animal (lechon, crecimiento, cerda o reproductor).
+2. Crea una dieta con ingredientes y porcentajes.
+3. Revisa resultados nutricionales (NE, aminoacidos, fosforo).
+4. Evalua costo por kg y tonelada.
+5. Guarda localmente y sincroniza en nube cuando haya credenciales.
+
+## 📁 Estructura del proyecto
+
+```text
+src/
+├── data/              # Ingredientes, precios y plantillas
+├── engine/            # Motor de calculo nutricional
+├── lib/               # Integraciones externas (Supabase)
+├── navigation/        # Navegacion principal
+├── screens/           # Pantallas de la app
+├── store/             # Estado global (Zustand)
+└── utils/             # Utilidades (ej. exportacion PDF)
+```
+
+## ✅ Calidad y release
+
+```bash
+# Gate principal de calidad
+npm run quality
+
+# Build release Android
+npm run release:build
+```
+
+Detalles completos de desarrollo, artefactos APK y politica de release en `docs/development.md` y `docs/release.md`.
+
 ## 📚 Documentacion
 
 - Indice general: [docs/README.md](docs/README.md)
