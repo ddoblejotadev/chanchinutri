@@ -5,6 +5,7 @@
 [![Expo](https://img.shields.io/badge/Expo-54.0-blue?style=flat-square)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.81.5-blue?style=flat-square)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square)](https://www.typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-2.x-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 **Evaluacion nutricional de piensos para cerdos**
@@ -46,6 +47,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 - Expo SDK 54 + React Native 0.81 + TypeScript
 - Estado global con Zustand
 - Navegacion con React Navigation (tabs + stack)
+- Supabase (sync en nube + persistencia remota)
 - Testing con Jest
 
 ## 📖 Uso rapido
