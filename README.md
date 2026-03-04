@@ -52,14 +52,23 @@ Para desarrollo diario no necesitás backend local: la app funciona en modo loca
 ## 📁 Estructura del proyecto
 
 ```text
-src/
-├── data/              # Ingredientes, precios y plantillas
-├── engine/            # Motor de calculo nutricional
-├── lib/               # Integraciones externas (Supabase)
-├── navigation/        # Navegacion principal
-├── screens/           # Pantallas de la app
-├── store/             # Estado global (Zustand)
-└── utils/             # Utilidades (ej. exportacion PDF)
+chanchinutri/
+├── src/
+│   ├── data/          # Ingredientes, precios y plantillas
+│   ├── engine/        # Motor de calculo nutricional
+│   ├── lib/           # Integraciones externas (Supabase)
+│   ├── navigation/    # Navegacion principal
+│   ├── screens/       # Pantallas de la app
+│   ├── store/         # Estado global (Zustand)
+│   └── utils/         # Utilidades (ej. exportacion PDF)
+├── __tests__/         # Unit + regression tests
+├── scripts/           # Build/verificacion de artefactos
+├── landing/           # Landing web estatica
+├── docs/              # Documentacion extendida
+├── .github/           # Workflows, templates y CODEOWNERS
+├── App.tsx            # Entry principal de la app
+├── package.json       # Scripts y dependencias
+└── README.md
 ```
 
 ## ✅ Calidad y release
