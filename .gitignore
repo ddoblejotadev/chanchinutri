@@ -12,6 +12,8 @@ expo-env.d.ts
 
 # SDD local artifacts
 openspec/
+.gga
+AGENTS.md
 
 # Native
 .kotlin/
