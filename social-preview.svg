@@ -1,0 +1,47 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ChanchiNutri Social Preview</title>
+  <desc id="desc">Vista previa social de la app ChanchiNutri con enfoque en nutricion y costos de dietas porcinas.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F3E8"/>
+      <stop offset="1" stop-color="#E6F3E8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="760" y1="80" x2="1180" y2="540" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E7D32"/>
+      <stop offset="1" stop-color="#66BB6A"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="200%" height="200%">
+      <feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#1C3D2B" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="1030" cy="-30" r="240" fill="#CFE9D1" fill-opacity="0.55"/>
+  <circle cx="1230" cy="580" r="280" fill="#DDEDD8" fill-opacity="0.7"/>
+
+  <g filter="url(#shadow)">
+    <rect x="740" y="84" width="450" height="472" rx="28" fill="url(#accent)"/>
+  </g>
+
+  <rect x="776" y="140" width="378" height="72" rx="16" fill="white" fill-opacity="0.18"/>
+  <rect x="776" y="236" width="378" height="72" rx="16" fill="white" fill-opacity="0.14"/>
+  <rect x="776" y="332" width="378" height="72" rx="16" fill="white" fill-opacity="0.12"/>
+  <rect x="776" y="428" width="182" height="62" rx="31" fill="white" fill-opacity="0.2"/>
+
+  <text x="92" y="200" fill="#123827" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="74" font-weight="800">ChanchiNutri</text>
+  <text x="92" y="262" fill="#2F4F3A" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="32" font-weight="600">Evaluacion nutricional y costos</text>
+  <text x="92" y="304" fill="#2F4F3A" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="32" font-weight="600">de dietas porcinas</text>
+
+  <text x="92" y="382" fill="#4A6150" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="500">NE · Aminoacidos digestibles · Fosforo · Costo por kg y tonelada</text>
+
+  <rect x="92" y="438" width="124" height="42" rx="21" fill="#1E6B33"/>
+  <text x="122" y="466" fill="white" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="700">Expo</text>
+
+  <rect x="230" y="438" width="206" height="42" rx="21" fill="#1E6B33"/>
+  <text x="260" y="466" fill="white" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="700">React Native</text>
+
+  <rect x="450" y="438" width="160" height="42" rx="21" fill="#1E6B33"/>
+  <text x="480" y="466" fill="white" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="700">TypeScript</text>
+
+  <text x="92" y="540" fill="#5C6D60" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="500">github.com/ddoblejotadev/chanchinutri</text>
+</svg>
