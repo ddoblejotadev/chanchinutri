@@ -71,6 +71,20 @@ npm install
 npm start
 ```
 
+### Landing web (presentacion)
+
+La landing estatica esta en `landing/` y se puede abrir de dos formas:
+
+```bash
+# Opcion 1: abrir directo
+landing/index.html
+
+# Opcion 2: levantar servidor estatico
+npx serve landing
+```
+
+Luego abre `http://localhost:3000` (o el puerto indicado por `serve`).
+
 ### Verificacion de build (CI-friendly)
 
 ```bash
