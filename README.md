@@ -102,22 +102,33 @@ npm run release:build
 ```
 
 Salida esperada:
-- `android/app/build/outputs/apk/release/app-release.apk`
+- `android/app/build/outputs/apk/release/app-universal-release.apk`
+- `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
+- `android/app/build/outputs/apk/release/app-x86_64-release.apk`
 
 Notas:
-- En el flujo normal se genera **un solo APK release** (`app-release.apk`).
-- Las variantes por ABI (por ejemplo `app-arm64-v8a-release.apk`, `app-x86_64-release.apk` o `app-universal-release.apk`) son opcionales y dependen de tener ABI split habilitado en Gradle.
+- El build release actual usa **ABI split habilitado** para `arm64-v8a` y `x86_64`, junto con `universalApk`.
+- El artefacto principal para distribucion y QA general es **`app-universal-release.apk`**.
+- Las variantes por ABI (`app-arm64-v8a-release.apk` y `app-x86_64-release.apk`) se usan para pruebas o distribucion optimizada por arquitectura.
+
+### Compatibilidad Android (release)
+
+- `minSdkVersion`: `24` (Android 7.0+)
+- `targetSdkVersion`: `36`
+- `compileSdkVersion`: `36`
+- Arquitecturas soportadas en release:
+  - `arm64-v8a`: recomendado para dispositivos fisicos Android modernos (64-bit ARM)
+  - `x86_64`: recomendado para emuladores Android x86_64
+  - `app-universal-release.apk`: recomendado como APK por defecto cuando no se segmenta por arquitectura
 
 ### Verificar artefactos release
 
 ```bash
-npm run verify-release -- android/app/build/outputs/apk/release/app-release.apk
+npm run verify-release -- android/app/build/outputs/apk/release/app-universal-release.apk
 ```
 
 Para pruebas en emulador x86_64, instalar `app-x86_64-release.apk` (o `app-universal-release.apk`).
 Para dispositivos fisicos ARM64, instalar `app-arm64-v8a-release.apk` (o `app-universal-release.apk`).
-
-Si no usás ABI split, validá e instalá `app-release.apk`.
 
 Valida automaticamente:
 - nombre de archivo (rechaza artefactos `debug`)
@@ -127,7 +138,7 @@ Valida automaticamente:
 ### Gate combinado (calidad + artefactos release)
 
 ```bash
-npm run gate:release -- android/app/build/outputs/apk/release/app-release.apk
+npm run gate:release -- android/app/build/outputs/apk/release/app-universal-release.apk
 ```
 
 Politica de artefactos:
