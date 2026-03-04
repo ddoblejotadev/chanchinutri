@@ -204,6 +204,13 @@ MIT License - ver [LICENSE](LICENSE) para detalles.
 
 ---
 
+## 🤝 Contribuir
+
+- Guia de contribucion: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Politica de seguridad: [SECURITY.md](SECURITY.md)
+
+---
+
 ## 👨‍💻 Autor
 
 **Desarrollado por**: [@ddoblejotadev](https://github.com/ddoblejotadev)
