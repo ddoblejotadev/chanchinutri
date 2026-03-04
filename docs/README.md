@@ -4,7 +4,10 @@ Indice de documentacion del proyecto ChanchiNutri.
 
 ## Para contributors
 
-- `../README.md`: introduccion general, instalacion y uso de la app.
+- `../README.md`: introduccion general y quick start.
+- `development.md`: setup de desarrollo, comandos y landing local.
+- `release.md`: build APK, verificacion de artefactos y politica de release.
+- `legal.md`: aviso legal y alcance de uso.
 - `../CONTRIBUTING.md`: flujo de contribucion, quality gates, politica de ramas y PR.
 - `../SECURITY.md`: politica de reporte de vulnerabilidades.
 
