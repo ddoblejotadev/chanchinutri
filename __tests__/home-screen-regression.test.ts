@@ -1,0 +1,12 @@
+import fs from 'fs';
+import path from 'path';
+
+describe('home screen regression', () => {
+  it('muestra el aviso legal con texto corregido', () => {
+    const homeScreenFile = path.join(__dirname, '..', 'src', 'screens', 'HomeScreen.tsx');
+    const source = fs.readFileSync(homeScreenFile, 'utf8');
+
+    expect(source).toContain('Aviso Importante');
+    expect(source).not.toContain('Aviso Important</Text>');
+  });
+});

@@ -187,6 +187,13 @@ Para uso **profesional**, validá los datos con:
 
 ---
 
+## 📝 Release Notes v1.0.4
+
+- Corrección de texto en pantalla principal: `Aviso Important` -> `Aviso Importante`.
+- Ajustes menores de consistencia de marca en documentación, manteniendo el aviso legal de no afiliación.
+
+---
+
 ## 📄 Licencia
 
 MIT License - ver [LICENSE](LICENSE) para detalles.

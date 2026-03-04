@@ -1,10 +1,9 @@
-import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../navigation/AppNavigation';
-import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
+import { useDietStore, ANIMAL_TYPES, type AnimalType } from '../store/dietStore';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList>,
@@ -14,7 +13,7 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 type Props = { navigation: HomeScreenNavigationProp };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { darkMode, toggleDarkMode, animalType, setAnimalType, syncEnabled, toggleSync, isSyncing, lastSynced, syncToCloud, savedDiets } = useDietStore();
+  const { darkMode, toggleDarkMode, animalType, setAnimalType, syncEnabled, toggleSync, isSyncing, syncToCloud, savedDiets } = useDietStore();
 
   const colors = darkMode ? {
     bg: '#121212',
@@ -90,7 +89,7 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>🐷 Tipo de Animal</Text>
           <View style={styles.animalTypes}>
-            {Object.entries(ANIMAL_TYPES).map(([key, value]) => (
+            {(Object.keys(ANIMAL_TYPES) as AnimalType[]).map((key) => (
               <TouchableOpacity
                 key={key}
                 style={[
@@ -98,13 +97,13 @@ export default function HomeScreen({ navigation }: Props) {
                   animalType === key && styles.animalTypeBtnActive,
                   { borderColor: colors.accent }
                 ]}
-                onPress={() => setAnimalType(key as any)}
+                onPress={() => setAnimalType(key)}
               >
                 <Text style={[
                   styles.animalTypeText,
                   { color: animalType === key ? colors.accent : colors.textSecondary }
                 ]}>
-                  {value.label}
+                  {ANIMAL_TYPES[key].label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -155,7 +154,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* Aviso Legal */}
         <View style={[styles.warningBox, { backgroundColor: '#FFF3E0', borderColor: '#FF9800' }]}>
-          <Text style={[styles.warningTitle, { color: '#E65100' }]}>⚠️ Aviso Important</Text>
+          <Text style={[styles.warningTitle, { color: '#E65100' }]}>⚠️ Aviso Importante</Text>
           <Text style={[styles.warningText, { color: '#666' }]}>
             Los valores nutricionales y precios mostrados son REFERENCIAS GENÉRICAS basadas en tablas públicas (INRAE-CIRAD-AFZ). 
             {'\n\n'}
@@ -189,10 +188,6 @@ const styles = StyleSheet.create({
   animalTypeBtn: { padding: 12, borderRadius: 8, borderWidth: 2, marginBottom: 8 },
   animalTypeBtnActive: { backgroundColor: '#E8F5E9' },
   animalTypeText: { fontSize: 14, fontWeight: '600' },
-  button: { padding: 18, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  buttonSecondary: { padding: 18, borderRadius: 10, alignItems: 'center', marginBottom: 15, borderWidth: 2 },
-  buttonTextSecondary: { fontSize: 18, fontWeight: '600' },
   infoBox: { padding: 20, borderRadius: 10, marginTop: 10 },
   infoTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   infoText: { fontSize: 14, lineHeight: 20 },
