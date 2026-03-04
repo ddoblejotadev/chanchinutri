@@ -66,7 +66,7 @@ Landing: https://ddoblejotadev.github.io/chanchinutri/
 ### X/Twitter (short)
 
 ```text
-ChanchiNutri is live 🐷
+ChanchiNutri is live
 Mobile app to evaluate pig diet nutrition + cost (Expo/RN/TS).
 
 Repo now contributor-ready: protected branch, required CI, CODEOWNERS, starter issues.
