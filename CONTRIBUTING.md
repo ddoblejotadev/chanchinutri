@@ -1,53 +1,151 @@
 # Contributing to ChanchiNutri
 
-Thanks for your interest in contributing.
+Guia para contributors y desarrolladores que trabajan en ChanchiNutri.
 
-## Ground rules
+## Table of Contents
 
-- Keep changes focused and easy to review.
-- Do not commit secrets or credentials.
-- Avoid dead code and unused imports.
-- If behavior changes, update or add tests.
+- [Development Setup](#development-setup)
+- [Project Structure](#project-structure)
+- [Quality Gates and Testing](#quality-gates-and-testing)
+- [Release Process](#release-process)
+- [Code Standards](#code-standards)
+- [Pull Request Checklist](#pull-request-checklist)
+- [Reporting Bugs](#reporting-bugs)
 
-## Development setup
+## Development Setup
+
+### Requirements
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | 18+ | Ejecutar tooling de Expo y scripts |
+| npm | 9+ | Gestion de dependencias y scripts |
+| Android Studio + SDK | Ultimo estable | Build APK local (release/debug) |
+| Git | Ultimo estable | Control de versiones |
+
+### Build from Source
 
 ```bash
+git clone https://github.com/ddoblejotadev/chanchinutri.git
+cd chanchinutri
 npm install
 npm start
 ```
 
-## Quality checks (required before PR)
+### Useful local commands
+
+```bash
+# Run app in Android (native run)
+npm run android
+
+# Run tests once
+npm test -- --runInBand
+
+# Type checking
+npx tsc --noEmit
+```
+
+## Project Structure
+
+```text
+chanchinutri/
+├── src/
+│   ├── data/                  # Ingredientes, precios y plantillas
+│   ├── engine/                # Motor de calculo nutricional
+│   ├── lib/                   # Integraciones externas (Supabase)
+│   ├── navigation/            # Configuracion de navegacion
+│   ├── screens/               # Pantallas de la app
+│   ├── store/                 # Estado global (Zustand)
+│   └── utils/                 # Utilidades (ej. exportacion PDF)
+├── __tests__/                 # Unit tests + regression tests
+├── scripts/                   # Build/verify de artefactos release
+├── .github/workflows/         # Quality gate y release gate en CI
+├── landing/                   # Landing web publica del proyecto
+└── AGENTS.md                  # Reglas de revision de codigo del repo
+```
+
+## Quality Gates and Testing
+
+Antes de abrir PR, estos checks son obligatorios:
 
 ```bash
 npm run quality
 ```
 
-This runs:
+`npm run quality` ejecuta:
 
-- Jest tests
-- Type checking (`tsc --noEmit`)
-- Build verification (`npm run build:verify`)
+1. `npm test -- --runInBand`
+2. `npx tsc --noEmit`
+3. `npm run build:verify`
 
-## Pull request checklist
+Para cambios relacionados a release de Android, ejecutar ademas:
 
-- [ ] Scope is clear and minimal.
-- [ ] Tests were added or updated when needed.
-- [ ] `npm run quality` passes locally.
-- [ ] No secrets were added.
-- [ ] README/docs were updated if user-facing behavior changed.
+```bash
+# Build release APK(s)
+npm run release:build
 
-## Commit style
+# Verify release artifact (example)
+npm run verify-release -- android/app/build/outputs/apk/release/app-universal-release.apk
 
-Use short, imperative commit messages. Examples:
+# Combined gate
+npm run gate:release -- android/app/build/outputs/apk/release/app-universal-release.apk
+```
 
-- `fix: prevent blank screen on back navigation`
-- `docs: clarify release APK artifacts`
+## Release Process
 
-## Reporting bugs
+Sigue este flujo para releases versionadas:
 
-Please use the issue templates and include:
+1. Asegura cambios significativos desde el tag anterior.
+2. Corre quality gate y release gate.
+3. Crea y publica tag.
+4. Crea GitHub Release con notas claras y artefactos APK correspondientes.
 
-- Steps to reproduce
-- Expected result
-- Actual result
-- Device and OS details
+### Tag + release example
+
+```bash
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin vX.Y.Z
+
+gh release create vX.Y.Z \
+  --title "vX.Y.Z" \
+  --notes "## Changes\n- Describe key features/fixes"
+```
+
+Release safety policy (obligatoria):
+
+- No crear release sin commits significativos desde el tag previo.
+- Para tags user-facing, incluir artefactos APK release validos.
+- Nunca publicar APK `debug` como release.
+
+## Code Standards
+
+Estas reglas son obligatorias y se validan en revision:
+
+- No commitear secretos o credenciales.
+- No dejar errores silenciados.
+- No dejar codigo muerto ni imports sin usar.
+- No introducir `any` sin justificacion explicita.
+- Mantener tipado claro en funciones/componentes publicos.
+- Si cambias navegacion, cubrir comportamiento de back-navigation con tests de regresion.
+- Mantener mutaciones de Zustand inmutables y predecibles.
+
+## Pull Request Checklist
+
+- [ ] El alcance es claro, pequeno y revisable.
+- [ ] Se agregaron/actualizaron tests si cambia comportamiento.
+- [ ] `npm run quality` pasa localmente.
+- [ ] No hay secretos ni credenciales en el diff.
+- [ ] No hay dead code ni imports sin usar.
+- [ ] README/docs se actualizaron si cambia UX, release o setup.
+- [ ] Si hubo cambios de navegacion, se incluyeron regression tests de back-navigation.
+
+## Reporting Bugs
+
+Usa los issue templates y agrega:
+
+- Pasos para reproducir
+- Resultado esperado
+- Resultado actual
+- Version de app
+- Dispositivo y version de Android
+- Logs/screenshots cuando aplique
