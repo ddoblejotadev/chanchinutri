@@ -1,4 +1,4 @@
-# 🐷 EvaPigApp
+# 🐷 PorciNutri CL
 
 <div align="center">
 
@@ -49,7 +49,13 @@ Calcula energía neta, aminoácidos digestibles, fósforo y costos de dietas por
 
 - Node.js 18+
 - npm o yarn
-- Expo CLI
+- Android Studio + SDK de Android (solo para generar APK local)
+
+### Entorno local vs nube
+
+- Para desarrollo diario **no necesitás levantar backend local**.
+- La sincronización usa Supabase en la nube; si no configurás credenciales, la app sigue funcionando en modo local/offline.
+- Para correr la app en desarrollo alcanza con `npm start` y abrir en Expo Go/emulador.
 
 ### Desarrollo
 
@@ -94,7 +100,8 @@ Salida esperada:
 - `android/app/build/outputs/apk/release/app-release.apk`
 
 Notas:
-- Las variantes por ABI (por ejemplo `app-arm64-v8a-release.apk`, `app-x86_64-release.apk` o `app-universal-release.apk`) dependen de la configuracion activa en Gradle.
+- En el flujo normal se genera **un solo APK release** (`app-release.apk`).
+- Las variantes por ABI (por ejemplo `app-arm64-v8a-release.apk`, `app-x86_64-release.apk` o `app-universal-release.apk`) son opcionales y dependen de tener ABI split habilitado en Gradle.
 
 ### Verificar artefactos release
 
@@ -104,6 +111,8 @@ npm run verify-release -- android/app/build/outputs/apk/release/app-release.apk
 
 Para pruebas en emulador x86_64, instalar `app-x86_64-release.apk` (o `app-universal-release.apk`).
 Para dispositivos fisicos ARM64, instalar `app-arm64-v8a-release.apk` (o `app-universal-release.apk`).
+
+Si no usás ABI split, validá e instalá `app-release.apk`.
 
 Valida automaticamente:
 - nombre de archivo (rechaza artefactos `debug`)
@@ -161,6 +170,8 @@ src/
 ---
 
 ## ⚠️ Aviso Legal
+
+PorciNutri CL es un proyecto independiente y **no esta afiliado, asociado, autorizado ni respaldado por EvaPig**.
 
 Los valores nutricionales y precios mostrados son **REFERENCIAS GENÉRICAS** basadas en tablas públicas (INRAE-CIRAD-AFZ).
 
