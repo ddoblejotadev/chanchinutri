@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useDietStore } from '../store/dietStore';
 import { defaultPrices, getIngredientPrice } from '../data/prices';
 import { ingredients } from '../data/ingredients';
@@ -13,6 +14,17 @@ export default function PriceSettingsScreen() {
   const { darkMode, updatePrice, resetPrices } = useDietStore();
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
+
+  const parseLocalizedDecimal = (value: string): number | null => {
+    const normalized = value.replace(',', '.').trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
   useEffect(() => {
     // Load current prices
@@ -29,13 +41,13 @@ export default function PriceSettingsScreen() {
   };
 
   const handleSave = async () => {
-    try {
-      for (const [id, priceStr] of Object.entries(prices)) {
-        const price = parseFloat(priceStr);
-        if (!isNaN(price) && price >= 0) {
-          await updatePrice(id, price);
+      try {
+        for (const [id, priceStr] of Object.entries(prices)) {
+          const price = parseLocalizedDecimal(priceStr);
+          if (price !== null && price >= 0) {
+            await updatePrice(id, price);
+          }
         }
-      }
       setHasChanges(false);
       Alert.alert('✅ Precios guardados', 'Los precios se han actualizado correctamente');
     } catch (error) {
@@ -75,7 +87,10 @@ export default function PriceSettingsScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 24 }]}
+    >
       <View style={[styles.header, { backgroundColor: colors.accent }]}>
         <Text style={styles.headerTitle}>💰 Precios</Text>
         <Text style={styles.headerSubtitle}>Editá los precios de tu región</Text>
@@ -105,7 +120,7 @@ export default function PriceSettingsScreen() {
                 style={[styles.priceInput, { backgroundColor: colors.bg, color: colors.text }]}
                 value={prices[ing.id] || ''}
                 onChangeText={(val) => handlePriceChange(ing.id, val)}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={colors.textSecondary}
               />
@@ -130,6 +145,7 @@ export default function PriceSettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollContent: { paddingBottom: 24 },
   header: { padding: 20, alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   headerSubtitle: { fontSize: 14, color: '#E8F5E9', marginTop: 5 },

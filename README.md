@@ -1,4 +1,4 @@
-# 🐷 PorciNutri CL
+# 🐷 ChanchiNutri
 
 <div align="center">
 
@@ -61,8 +61,8 @@ Calcula energía neta, aminoácidos digestibles, fósforo y costos de dietas por
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/ddoblejotadev/evapigapp.git
-cd evapigapp
+git clone https://github.com/ddoblejotadev/chanchinutri.git
+cd chanchinutri
 
 # Instalar dependencias
 npm install
@@ -78,6 +78,11 @@ npm run build:verify
 ```
 
 Este comando ejecuta `expo export` para Android y valida que el bundle de produccion pueda generarse sin compilar nativo.
+
+### TODO branding visual (assets)
+
+- Revisar y reemplazar `assets/icon.png`, `assets/splash-icon.png`, `assets/favicon.png` y `assets/android-icon-*` si aun contienen marca o logotipo previo.
+- Este entorno no edita binarios de imagen, por lo que el reemplazo debe hacerse manualmente con versiones finales de ChanchiNutri.
 
 ### Gate de calidad
 
@@ -171,7 +176,7 @@ src/
 
 ## ⚠️ Aviso Legal
 
-PorciNutri CL es un proyecto independiente y **no esta afiliado, asociado, autorizado ni respaldado por EvaPig**.
+ChanchiNutri es un proyecto independiente y **no esta afiliado, asociado, autorizado ni respaldado por EvaPig**.
 
 Los valores nutricionales y precios mostrados son **REFERENCIAS GENÉRICAS** basadas en tablas públicas (INRAE-CIRAD-AFZ).
 

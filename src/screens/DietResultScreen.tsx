@@ -38,6 +38,16 @@ export default function DietResultScreen(): React.JSX.Element {
   const [dietName, setDietName] = useState('');
   const [budget, setBudget] = useState('');
   const { currentDiet, savedDiets, saveDiet, clearDiet, animalType, darkMode, loadDiet, updatePrice } = useDietStore();
+
+  const parseLocalizedDecimal = (value: string): number | null => {
+    const normalized = value.replace(',', '.').trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
   
   const results = calculateDiet(currentDiet);
   const validation = validateDiet(currentDiet, animalType);
@@ -49,7 +59,7 @@ export default function DietResultScreen(): React.JSX.Element {
   const costPerTonne = calculateCostPerTonne(currentDiet);
   
   // Budget comparison
-  const budgetValue = parseFloat(budget) || 0;
+  const budgetValue = parseLocalizedDecimal(budget) ?? 0;
   const isOverBudget = budgetValue > 0 && costPerKg > budgetValue;
   const budgetDiff = budgetValue > 0 ? costPerKg - budgetValue : 0;
   const inclusionWarnings = validation.warningDetails;
@@ -210,7 +220,7 @@ export default function DietResultScreen(): React.JSX.Element {
                 style={[styles.budgetInput, { backgroundColor: colors.card, color: colors.text }]}
                 value={budget}
                 onChangeText={setBudget}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={colors.textSecondary}
               />

@@ -29,6 +29,7 @@ openspec/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+coverage/
 
 # macOS
 .DS_Store

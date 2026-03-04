@@ -22,7 +22,7 @@ export async function exportDietToPDF(diet: SavedDiet): Promise<void> {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>EvaPig - ${diet.name}</title>
+      <title>ChanchiNutri - ${diet.name}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
         h1 { color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
@@ -44,7 +44,7 @@ export async function exportDietToPDF(diet: SavedDiet): Promise<void> {
       </style>
     </head>
     <body>
-      <h1>EvaPig® - Informe de Dieta</h1>
+      <h1>ChanchiNutri - Informe de Dieta</h1>
       
       <div style="display: flex; justify-content: space-between;">
         <div>
@@ -97,7 +97,7 @@ export async function exportDietToPDF(diet: SavedDiet): Promise<void> {
       </table>
 
       <div class="footer">
-        <p>Generado por EvaPig® - Herramienta de evaluación nutricional para piensos de cerdos.</p>
+        <p>Generado por ChanchiNutri - Herramienta de evaluación nutricional para piensos de cerdos.</p>
         <p>Basado en tablas INRAE-CIRAD-AFZ</p>
       </div>
     </body>

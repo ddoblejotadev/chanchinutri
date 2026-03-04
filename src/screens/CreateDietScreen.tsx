@@ -4,8 +4,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
 import { ingredients, CATEGORIES, getIngredientById } from '../data/ingredients';
-import { calculateDiet, getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
-import { dietTemplates, getTemplatesByAnimalType, DietTemplate } from '../data/templates';
+import { getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
+import { getTemplatesByAnimalType } from '../data/templates';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'CreateDiet'> };
 
@@ -14,6 +14,7 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [percentageDrafts, setPercentageDrafts] = useState<Record<string, string>>({});
   
   const { 
     currentDiet, addIngredient, updatePercentage, removeIngredient, clearDiet, 
@@ -23,6 +24,51 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
+
+  useEffect(() => {
+    setPercentageDrafts((prev) => {
+      const next: Record<string, string> = {};
+
+      currentDiet.forEach((item) => {
+        next[item.id] = Object.prototype.hasOwnProperty.call(prev, item.id)
+          ? prev[item.id]
+          : item.pct.toString();
+      });
+
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      const hasChanged =
+        prevKeys.length !== nextKeys.length ||
+        nextKeys.some((key) => prev[key] !== next[key]);
+
+      return hasChanged ? next : prev;
+    });
+  }, [currentDiet]);
+
+  const parseDecimalInput = (value: string): number | null => {
+    const normalized = value.replace(',', '.').trim();
+
+    if (!normalized || normalized.endsWith('.')) {
+      return null;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const handlePercentageChange = (id: string, value: string) => {
+    setPercentageDrafts((prev) => ({ ...prev, [id]: value }));
+
+    if (!value.trim()) {
+      updatePercentage(id, 0);
+      return;
+    }
+
+    const parsed = parseDecimalInput(value);
+    if (parsed !== null) {
+      updatePercentage(id, parsed);
+    }
+  };
 
   const totalPct = getTotalPercentage(currentDiet);
   const filteredIngredients = ingredients.filter(i => {
@@ -258,9 +304,9 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
                   </View>
                   <TextInput
                     style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
-                    value={item.pct.toString()}
-                    keyboardType="numeric"
-                    onChangeText={(text) => updatePercentage(item.id, parseInt(text) || 0)}
+                    value={percentageDrafts[item.id] ?? item.pct.toString()}
+                    keyboardType="decimal-pad"
+                    onChangeText={(text) => handlePercentageChange(item.id, text)}
                   />
                   <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
                   <TouchableOpacity onPress={() => removeIngredient(item.id)}>

@@ -9,4 +9,12 @@ describe('settings navigation regression', () => {
     expect(source).toMatch(/name="Settings"[\s\S]*component=\{PriceSettingsScreen\}/);
     expect(source).not.toMatch(/navigation\.navigate\('PriceSettings'\)/);
   });
+
+  it('agrega espacio inferior dinamico para evitar contenido tapado por tab bar', () => {
+    const settingsFile = path.join(__dirname, '..', 'src', 'screens', 'PriceSettingsScreen.tsx');
+    const source = fs.readFileSync(settingsFile, 'utf8');
+
+    expect(source).toMatch(/useBottomTabBarHeight/);
+    expect(source).toMatch(/contentContainerStyle=\{\[styles\.scrollContent,\s*\{\s*paddingBottom:\s*tabBarHeight\s*\+\s*24\s*\}\]\}/);
+  });
 });

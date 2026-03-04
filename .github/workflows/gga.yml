@@ -1,0 +1,54 @@
+name: Gentleman Guardian Angel
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, master]
+
+jobs:
+  code-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm global packages
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-gemini-cli-v1
+          restore-keys: |
+            ${{ runner.os }}-npm-gemini-cli-
+
+      - name: Cache Gemini CLI
+        uses: actions/cache@v4
+        id: gemini-cache
+        with:
+          path: /usr/local/lib/node_modules/@google/gemini-cli
+          key: ${{ runner.os }}-gemini-cli-v1
+
+      - name: Install GGA
+        run: |
+          git clone --depth 1 https://github.com/Gentleman-Programming/gentleman-guardian-angel.git /tmp/gga
+          sudo cp /tmp/gga/bin/gga /usr/local/bin/
+          sudo cp /tmp/gga/lib/*.sh /usr/local/lib/
+          sudo chmod +x /usr/local/bin/gga
+
+      - name: Install Gemini CLI
+        if: steps.gemini-cache.outputs.cache-hit != 'true'
+        run: npm install -g @google/gemini-cli
+
+      - name: Run GGA Code Review
+        run: gga run --ci
+        env:
+          GGA_PROVIDER: gemini
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

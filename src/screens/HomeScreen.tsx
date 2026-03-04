@@ -33,7 +33,7 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { backgroundColor: colors.accent }]}>
-        <Text style={styles.title}>EvaPig®</Text>
+        <Text style={styles.title}>ChanchiNutri</Text>
         <Text style={styles.subtitle}>Evaluación de piensos</Text>
       </View>
 
@@ -135,7 +135,7 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
-          <Text style={[styles.infoTitle, { color: colors.text }]}>Acerca de EvaPig</Text>
+          <Text style={[styles.infoTitle, { color: colors.text }]}>Acerca de ChanchiNutri</Text>
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
             Herramienta de evaluación nutricional para piensos de cerdos. 
             Calcula energía neta, aminoácidos digestibles y fósforo.

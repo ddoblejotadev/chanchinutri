@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PorciNutri CL",
-    "slug": "porci-nutri-cl",
+    "name": "ChanchiNutri",
+    "slug": "chanchinutri",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.ddoblejota.porcinutricl"
+      "package": "com.ddoblejota.chanchinutri"
     },
     "plugins": [
       [
