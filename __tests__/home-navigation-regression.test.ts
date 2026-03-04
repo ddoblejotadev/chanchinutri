@@ -15,5 +15,6 @@ describe('home navigation regression', () => {
 
     expect(source).toMatch(/type RootStackParamList = \{[\s\S]*CreateDiet: undefined;[\s\S]*\};/);
     expect(source).toMatch(/<Stack\.Screen name="CreateDiet" component=\{CreateDietScreen\}/);
+    expect(source).toMatch(/<Stack\.Screen name="MainTabs" component=\{MainTabs\} options=\{\{ headerShown: false \}\}/);
   });
 });

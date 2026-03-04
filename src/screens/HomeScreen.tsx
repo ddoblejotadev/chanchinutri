@@ -31,8 +31,11 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { backgroundColor: colors.accent }]}>
-        <Text style={styles.title}>ChanchiNutri</Text>
+      <View style={[styles.header, { backgroundColor: colors.accent }]}> 
+        <View style={styles.titleRow}>
+          <Text style={styles.titlePig}>🐷</Text>
+          <Text style={styles.title}>ChanchiNutri</Text>
+        </View>
         <Text style={styles.subtitle}>Evaluación de piensos</Text>
       </View>
 
@@ -169,6 +172,8 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 30, alignItems: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  titlePig: { fontSize: 34 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 14, color: '#e8f5e9', marginTop: 5 },
   content: { padding: 20 },

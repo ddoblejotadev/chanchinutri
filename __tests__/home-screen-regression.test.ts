@@ -9,4 +9,21 @@ describe('home screen regression', () => {
     expect(source).toContain('Aviso Importante');
     expect(source).not.toContain('Aviso Important</Text>');
   });
+
+  it('mantiene branding con icono de cerdito en el header', () => {
+    const homeScreenFile = path.join(__dirname, '..', 'src', 'screens', 'HomeScreen.tsx');
+    const source = fs.readFileSync(homeScreenFile, 'utf8');
+
+    expect(source).toContain('styles.titleRow');
+    expect(source).toContain('styles.titlePig');
+    expect(source).toContain('🐷');
+    expect(source).toContain('ChanchiNutri');
+  });
+
+  it('mantiene la navegacion al flujo Crear Dieta', () => {
+    const homeScreenFile = path.join(__dirname, '..', 'src', 'screens', 'HomeScreen.tsx');
+    const source = fs.readFileSync(homeScreenFile, 'utf8');
+
+    expect(source).toContain(`navigation.navigate('CreateDiet')`);
+  });
 });

@@ -16,6 +16,7 @@ REJECT if:
 
 REQUIRE:
 - Back-navigation behavior is covered by regression tests when navigation is modified.
+- Source-level regression tests for route declarations and navigate targets are acceptable when runtime navigation harnesses are not present.
 - Zustand state mutations remain immutable and predictable.
 
 ## Testing and Quality
