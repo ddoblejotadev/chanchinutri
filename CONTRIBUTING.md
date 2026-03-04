@@ -60,10 +60,19 @@ chanchinutri/
 │   └── utils/                 # Utilidades (ej. exportacion PDF)
 ├── __tests__/                 # Unit tests + regression tests
 ├── scripts/                   # Build/verify de artefactos release
+├── .config/opencode/commands/ # Contratos SDD versionados para CI
 ├── .github/workflows/         # Quality gate y release gate en CI
 ├── landing/                   # Landing web publica del proyecto
 └── AGENTS.md                  # Reglas de revision de codigo del repo
 ```
+
+## SDD Command Contract
+
+Para que CI sea consistente entre contributors, los comandos SDD se versionan en el repo (no en config personal):
+
+- Carpeta requerida: `.config/opencode/commands/`
+- Archivos requeridos: `sdd-init.md`, `sdd-new.md`, `sdd-ff.md`, `sdd-continue.md`, `sdd-apply.md`, `sdd-verify.md`, `sdd-archive.md`
+- `sdd-new.md`, `sdd-ff.md` y `sdd-continue.md` deben declarar `agent: sdd-orchestrator`
 
 ## Quality Gates and Testing
 

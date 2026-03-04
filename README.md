@@ -26,6 +26,13 @@ npm start
 
 Para desarrollo diario no necesitás backend local: la app funciona en modo local/offline y usa Supabase cloud cuando hay credenciales.
 
+Si querés habilitar sync en nube, copiá `.env.example` a `.env` y completá:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
 ## 📱 Caracteristicas principales
 
 - Calculo nutricional: NE, lisina, metionina, treonina, fosforo y materia seca.
