@@ -223,6 +223,11 @@ MIT License - ver [LICENSE](LICENSE) para detalles.
 - Guia de contribucion: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Politica de seguridad: [SECURITY.md](SECURITY.md)
 
+## 📚 Documentacion
+
+- Indice de docs: [docs/README.md](docs/README.md)
+- Guia interna para maintainers: [docs/maintainers/community-playbook.md](docs/maintainers/community-playbook.md)
+
 ---
 
 ## 👨‍💻 Autor
