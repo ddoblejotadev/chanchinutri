@@ -7,6 +7,18 @@
 
 import { useAuthStore } from '../src/store/authStore';
 import { getCachedDeviceId } from '../src/lib/deviceId';
+import { logger } from '../src/lib/logger';
+
+jest.mock('../src/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+  },
+}));
+
+const mockLogger = logger as jest.Mocked<typeof logger>;
 
 // ---------------------------------------------------------------------------
 // Supabase chain mock: from(table).update(data).eq(col, val).is(col, val)
@@ -120,7 +132,7 @@ describe('migrateDeviceData', () => {
   // ---------------------------------------------------------------------------
 
   it('does not throw when Supabase returns an error', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockLogger.error.mockImplementation(() => {});
 
     useAuthStore.setState({
       user: { id: MOCK_USER_ID } as import('@supabase/supabase-js').User,
@@ -133,16 +145,16 @@ describe('migrateDeviceData', () => {
     await expect(useAuthStore.getState().migrateDeviceData()).resolves.toBeUndefined();
 
     // Error was logged
-    expect(consoleSpy).toHaveBeenCalledWith(
+    expect(mockLogger.error).toHaveBeenCalledWith(
       'Error migrating device data:',
       expect.objectContaining({ message: 'Some DB error' }),
     );
 
-    consoleSpy.mockRestore();
+    mockLogger.error.mockRestore();
   });
 
   it('does not throw when an exception is thrown', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockLogger.error.mockImplementation(() => {});
 
     useAuthStore.setState({
       user: { id: MOCK_USER_ID } as import('@supabase/supabase-js').User,
@@ -155,11 +167,11 @@ describe('migrateDeviceData', () => {
     await expect(useAuthStore.getState().migrateDeviceData()).resolves.toBeUndefined();
 
     // Error was logged
-    expect(consoleSpy).toHaveBeenCalledWith(
+    expect(mockLogger.error).toHaveBeenCalledWith(
       'Error during device data migration:',
       expect.any(Error),
     );
 
-    consoleSpy.mockRestore();
+    mockLogger.error.mockRestore();
   });
 });

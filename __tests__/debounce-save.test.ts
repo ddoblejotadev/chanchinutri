@@ -6,6 +6,18 @@
  */
 
 import { debouncedSave, flushDebouncedSave, _resetDebouncedSave } from '../src/store/dietStore';
+import { logger } from '../src/lib/logger';
+
+jest.mock('../src/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+  },
+}));
+
+const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('debouncedSave / flushDebouncedSave', () => {
   beforeEach(() => {
@@ -105,7 +117,7 @@ describe('debouncedSave / flushDebouncedSave', () => {
 
   describe('error handling', () => {
     it('logs errors from the save function on timer expiry without throwing', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockLogger.error.mockImplementation(() => {});
       const failingFn = jest.fn().mockRejectedValue(new Error('write failed'));
 
       debouncedSave(failingFn);
@@ -114,21 +126,21 @@ describe('debouncedSave / flushDebouncedSave', () => {
       // The promise rejection is handled internally via .catch
       // Give microtask queue a chance to flush
       return Promise.resolve().then(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Error in debounced save:', expect.any(Error));
-        consoleSpy.mockRestore();
+        expect(mockLogger.error).toHaveBeenCalledWith('Error in debounced save:', expect.any(Error));
+        mockLogger.error.mockRestore();
       });
     });
 
     it('logs errors from the save function on flush without throwing', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockLogger.error.mockImplementation(() => {});
       const failingFn = jest.fn().mockRejectedValue(new Error('write failed'));
 
       debouncedSave(failingFn);
       flushDebouncedSave();
 
       return Promise.resolve().then(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Error flushing save:', expect.any(Error));
-        consoleSpy.mockRestore();
+        expect(mockLogger.error).toHaveBeenCalledWith('Error flushing save:', expect.any(Error));
+        mockLogger.error.mockRestore();
       });
     });
   });

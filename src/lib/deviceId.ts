@@ -1,5 +1,6 @@
 import { randomUUID } from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from './logger';
 
 const DEVICE_ID_KEY = '@evapig_device_id';
 
@@ -26,7 +27,7 @@ export async function getDeviceId(): Promise<string> {
       return stored;
     }
   } catch (e) {
-    console.error('Error reading device ID from storage:', e);
+    logger.error('Error reading device ID from storage:', e);
   }
 
   const newId = randomUUID();
@@ -34,7 +35,7 @@ export async function getDeviceId(): Promise<string> {
   try {
     await AsyncStorage.setItem(DEVICE_ID_KEY, newId);
   } catch (e) {
-    console.error('Error saving device ID to storage:', e);
+    logger.error('Error saving device ID to storage:', e);
   }
 
   cachedId = newId;

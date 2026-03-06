@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, TABLES } from '../lib/supabase';
-import { setAllCustomPrices, getIngredientPrice } from '../data/prices';
+import { setAllCustomPrices } from '../data/prices';
 import { getDeviceId, getCachedDeviceId } from '../lib/deviceId';
 import { useAuthStore } from './authStore';
+import { logger } from '../lib/logger';
 
 export interface InclusionLimits {
   minPct?: number;
@@ -172,7 +173,7 @@ export function debouncedSave(saveFn: () => Promise<void>): void {
     const fn = _pendingSave;
     _pendingSave = null;
     if (fn) {
-      fn().catch((e) => console.error('Error in debounced save:', e));
+      fn().catch((e) => logger.error('Error in debounced save:', e));
     }
   }, 300);
 }
@@ -185,7 +186,7 @@ export function flushDebouncedSave(): void {
   if (_pendingSave) {
     const fn = _pendingSave;
     _pendingSave = null;
-    fn().catch((e) => console.error('Error flushing save:', e));
+    fn().catch((e) => logger.error('Error flushing save:', e));
   }
 }
 
@@ -207,8 +208,9 @@ try {
       flushDebouncedSave();
     }
   });
-} catch {
+} catch (e) {
   // In test environments, react-native may not be available — skip listener
+  logger.warn('Could not register AppState listener:', e);
 }
 
 interface DietState {
@@ -323,7 +325,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
         .delete()
         .eq('id', id)
         .then(({ error }) => {
-          if (error) console.error('Error deleting from cloud:', error);
+          if (error) logger.error('Error deleting from cloud:', error);
         });
     }
   },
@@ -357,10 +359,10 @@ export const useDietStore = create<DietState>()((set, get) => ({
       try {
         await getDeviceId();
       } catch (e) {
-        console.warn('Could not initialize device ID (non-fatal):', e);
+        logger.warn('Could not initialize device ID (non-fatal):', e);
       }
     } catch (e) {
-      console.error('Error loading from storage:', e);
+      logger.error('Error loading from storage:', e);
     }
   },
 
@@ -373,7 +375,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
         dirtyIds: Array.from(dirtyIds),
       }));
     } catch (e) {
-      console.error('Error saving to storage:', e);
+      logger.error('Error saving to storage:', e);
     }
   },
 
@@ -441,7 +443,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
 
       if (error) {
         // Don't clear dirtyIds on error — preserve for retry
-        console.error('Error syncing to cloud:', error);
+        logger.error('Error syncing to cloud:', error);
         return;
       }
 
@@ -450,7 +452,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
       get().saveToStorage();
     } catch (error) {
       // Don't clear dirtyIds — preserve for retry
-      console.error('Error syncing to cloud:', error);
+      logger.error('Error syncing to cloud:', error);
     } finally {
       set({ isSyncing: false });
     }
@@ -478,7 +480,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error loading from cloud:', error);
+        logger.error('Error loading from cloud:', error);
         return;
       }
       
@@ -518,7 +520,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
         get().saveToStorage();
       }
     } catch (error) {
-      console.error('Error loading from cloud:', error);
+      logger.error('Error loading from cloud:', error);
     } finally {
       set({ isSyncing: false });
     }
@@ -539,7 +541,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
       // Update in-memory prices
       setAllCustomPrices(prices);
     } catch (error) {
-      console.error('Error updating price:', error);
+      logger.error('Error updating price:', error);
     }
   },
 
@@ -548,7 +550,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
       await AsyncStorage.removeItem('evapig-custom-prices');
       setAllCustomPrices({});
     } catch (error) {
-      console.error('Error resetting prices:', error);
+      logger.error('Error resetting prices:', error);
     }
   },
 }));

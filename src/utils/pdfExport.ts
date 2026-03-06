@@ -2,6 +2,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { SavedDiet, ANIMAL_TYPES } from '../store/dietStore';
 import { getIngredientById } from '../data/ingredients';
+import { logger } from '../lib/logger';
 
 export async function exportDietToPDF(diet: SavedDiet): Promise<void> {
   const animalLabel = ANIMAL_TYPES[diet.animalType as keyof typeof ANIMAL_TYPES]?.label || diet.animalType;
@@ -114,10 +115,10 @@ export async function exportDietToPDF(diet: SavedDiet): Promise<void> {
         UTI: 'com.adobe.pdf',
       });
     } else {
-      console.log('Sharing not available');
+      logger.log('Sharing not available');
     }
   } catch (error) {
-    console.error('Error exporting PDF:', error);
+    logger.error('Error exporting PDF:', error);
     throw error;
   }
 }

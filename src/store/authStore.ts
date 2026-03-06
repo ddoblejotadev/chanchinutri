@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, TABLES } from '../lib/supabase';
 import { getCachedDeviceId } from '../lib/deviceId';
+import { logger } from '../lib/logger';
 
 interface AuthState {
   session: Session | null;
@@ -53,7 +54,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('Error getting session:', error.message);
+        logger.error('Error getting session:', error.message);
       }
       if (data.session) {
         set({
@@ -63,7 +64,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         });
       }
     } catch (e) {
-      console.error('Error initializing auth:', e);
+      logger.error('Error initializing auth:', e);
     }
 
     // Set up auth state change listener
@@ -97,7 +98,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       await get().migrateDeviceData();
       return { error: null };
     } catch (e) {
-      console.error('Error during sign up:', e);
+      logger.error('Error during sign up:', e);
       return { error: 'Error inesperado al registrarse' };
     }
   },
@@ -113,7 +114,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       await get().migrateDeviceData();
       return { error: null };
     } catch (e) {
-      console.error('Error during sign in:', e);
+      logger.error('Error during sign in:', e);
       return { error: 'Error inesperado al iniciar sesión' };
     }
   },
@@ -127,7 +128,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         isAuthenticated: false,
       });
     } catch (e) {
-      console.error('Error during sign out:', e);
+      logger.error('Error during sign out:', e);
     }
   },
 
@@ -142,12 +143,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         ) {
           return { error: 'Demasiados intentos. Esperá unos minutos.' };
         }
-        // Return success even for unknown errors related to email not found
+        // Log non-rate-limit errors but still return null for security
         // (security best practice: don't reveal if email exists)
+        logger.error('Password reset error (non-rate-limit):', error.message);
       }
       return { error: null };
     } catch (e) {
-      console.error('Error during password reset:', e);
+      logger.error('Error during password reset:', e);
       return { error: 'Error inesperado al restablecer la contraseña' };
     }
   },
@@ -166,13 +168,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         .is('user_id', null);
 
       if (error) {
-        console.error('Error migrating device data:', error);
+        logger.error('Error migrating device data:', error);
       } else {
-        console.log(`Migrated device data: device_id=${deviceId} → user_id=${userId}`);
+        logger.log(`Migrated device data: device_id=${deviceId} → user_id=${userId}`);
       }
     } catch (e) {
       // Fire-and-forget: don't block the app if migration fails
-      console.error('Error during device data migration:', e);
+      logger.error('Error during device data migration:', e);
     }
   },
 }));
