@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../navigation/AppNavigation';
 import { useDietStore, ANIMAL_TYPES, type AnimalType } from '../store/dietStore';
+import { useAuthStore } from '../store/authStore';
+import { useShallow } from 'zustand/react/shallow';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList>,
@@ -13,9 +16,10 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 type Props = { navigation: HomeScreenNavigationProp };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { darkMode, toggleDarkMode, animalType, setAnimalType, syncEnabled, toggleSync, isSyncing, syncToCloud, savedDiets } = useDietStore();
+  const { darkMode, toggleDarkMode, animalType, setAnimalType, syncEnabled, toggleSync, isSyncing, syncToCloud, savedDiets } = useDietStore(useShallow((s) => ({ darkMode: s.darkMode, toggleDarkMode: s.toggleDarkMode, animalType: s.animalType, setAnimalType: s.setAnimalType, syncEnabled: s.syncEnabled, toggleSync: s.toggleSync, isSyncing: s.isSyncing, syncToCloud: s.syncToCloud, savedDiets: s.savedDiets })));
+  const { isAuthenticated } = useAuthStore(useShallow((s) => ({ isAuthenticated: s.isAuthenticated })));
 
-  const colors = darkMode ? {
+  const colors = useMemo(() => darkMode ? {
     bg: '#121212',
     card: '#1E1E1E',
     text: '#FFF',
@@ -27,7 +31,7 @@ export default function HomeScreen({ navigation }: Props) {
     text: '#333',
     textSecondary: '#666',
     accent: '#4CAF50',
-  };
+  }, [darkMode]);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -51,41 +55,66 @@ export default function HomeScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Cloud Sync Toggle - Default ON */}
-        <View style={[styles.darkModeRow, { backgroundColor: colors.card }]}>
-          <View style={styles.syncToggleContainer}>
-            <Text style={[styles.darkModeLabel, { color: colors.text }]}>☁️ Sincronización automática</Text>
-            <Text style={[styles.darkModeSub, { color: colors.textSecondary }]}>
-              Tus dietas se guardan en la nube y se protegen contra pérdida del dispositivo
-            </Text>
-          </View>
-          <Switch
-            value={syncEnabled}
-            onValueChange={toggleSync}
-            trackColor={{ false: '#767577', true: '#4CAF50' }}
-            thumbColor={syncEnabled ? '#fff' : '#f4f3f4'}
-          />
-        </View>
-
-        {/* Sync Now Button */}
-        {syncEnabled && (
-          <TouchableOpacity 
-            style={[styles.syncCard, { backgroundColor: colors.accent + '15' }]}
-            onPress={syncToCloud}
-            disabled={isSyncing}
-          >
-            <View style={styles.syncCardContent}>
-              <Text style={styles.syncIcon}>🔄</Text>
-              <View style={styles.syncTextContainer}>
-                <Text style={[styles.syncTitle, { color: colors.text }]}>
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar ahora'}
-                </Text>
-                <Text style={[styles.syncSubtitle, { color: colors.textSecondary }]}>
-                  {savedDiets.length} dieta{savedDiets.length !== 1 ? 's' : ''} guardada{savedDiets.length !== 1 ? 's' : ''} • Toca para actualizar
+        {/* Cloud Sync Section - conditional on auth */}
+        {isAuthenticated ? (
+          <>
+            {/* Cloud Sync Toggle - Default ON */}
+            <View style={[styles.darkModeRow, { backgroundColor: colors.card }]}>
+              <View style={styles.syncToggleContainer}>
+                <Text style={[styles.darkModeLabel, { color: colors.text }]}>☁️ Sincronización automática</Text>
+                <Text style={[styles.darkModeSub, { color: colors.textSecondary }]}>
+                  Tus dietas se guardan en la nube y se protegen contra pérdida del dispositivo
                 </Text>
               </View>
+              <Switch
+                value={syncEnabled}
+                onValueChange={toggleSync}
+                trackColor={{ false: '#767577', true: '#4CAF50' }}
+                thumbColor={syncEnabled ? '#fff' : '#f4f3f4'}
+              />
             </View>
-          </TouchableOpacity>
+
+            {/* Sync Now Button */}
+            {syncEnabled && (
+              <TouchableOpacity 
+                style={[styles.syncCard, { backgroundColor: colors.accent + '15' }]}
+                onPress={syncToCloud}
+                disabled={isSyncing}
+              >
+                <View style={styles.syncCardContent}>
+                  <Text style={styles.syncIcon}>🔄</Text>
+                  <View style={styles.syncTextContainer}>
+                    <Text style={[styles.syncTitle, { color: colors.text }]}>
+                      {isSyncing ? 'Sincronizando...' : 'Sincronizar ahora'}
+                    </Text>
+                    <Text style={[styles.syncSubtitle, { color: colors.textSecondary }]}>
+                      {savedDiets.length} dieta{savedDiets.length !== 1 ? 's' : ''} guardada{savedDiets.length !== 1 ? 's' : ''} • Toca para actualizar
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          </>
+        ) : (
+          <View style={[styles.authPromptCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.authPromptText, { color: colors.textSecondary }]}>
+              Iniciá sesión para sincronizar tus dietas entre dispositivos
+            </Text>
+            <View style={styles.authPromptButtons}>
+              <TouchableOpacity
+                style={[styles.authPromptBtn, { backgroundColor: colors.accent }]}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.authPromptBtnText}>Iniciar sesión</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.authPromptBtnOutline, { borderColor: colors.accent }]}
+                onPress={() => navigation.navigate('Register')}
+              >
+                <Text style={[styles.authPromptBtnOutlineText, { color: colors.accent }]}>Crear cuenta</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         {/* Animal Type Selector */}
@@ -214,4 +243,11 @@ const styles = StyleSheet.create({
   statNumber: { fontSize: 28, fontWeight: 'bold' },
   statLabel: { fontSize: 12, marginTop: 4 },
   statDivider: { width: 1, backgroundColor: '#ddd', marginVertical: 5 },
+  authPromptCard: { padding: 15, borderRadius: 10, marginBottom: 15 },
+  authPromptText: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 12 },
+  authPromptButtons: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
+  authPromptBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8 },
+  authPromptBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  authPromptBtnOutline: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, borderWidth: 1.5 },
+  authPromptBtnOutlineText: { fontWeight: '600', fontSize: 14 },
 });

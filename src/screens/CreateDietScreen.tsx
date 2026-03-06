@@ -1,13 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, FlatList } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigation';
-import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
+import { useDietStore, ANIMAL_TYPES, DietItem, IngredientInclusionWarning } from '../store/dietStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ingredients, CATEGORIES, getIngredientById } from '../data/ingredients';
-import { getTotalPercentage, validateDiet, getComplianceStatus } from '../engine/calculations';
+import { getTotalPercentage, calculateDiet, validateDiet, getComplianceStatus } from '../engine/calculations';
 import { getTemplatesByAnimalType } from '../data/templates';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'CreateDiet'> };
+
+// --- Extracted Components ---
+
+interface IngredientRowProps {
+  item: DietItem;
+  inclusionWarning: IngredientInclusionWarning | undefined;
+  percentageDraft: string | undefined;
+  colors: {
+    bg: string; card: string; text: string; textSecondary: string;
+    accent: string; warning: string; error: string; success: string;
+  };
+  onPercentageChange: (id: string, value: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const IngredientRow = React.memo(function IngredientRow({
+  item, inclusionWarning, percentageDraft, colors, onPercentageChange, onRemove,
+}: IngredientRowProps): React.JSX.Element {
+  const ingredient = getIngredientById(item.id);
+  const limits = ingredient?.inclusionLimits;
+  const hasInclusionWarning = Boolean(inclusionWarning);
+
+  const rangeText = limits
+    ? `${limits.minPct ?? 0}% - ${limits.maxPct ?? 100}%`
+    : null;
+
+  const warningText = inclusionWarning
+    ? inclusionWarning.reason === 'below-min'
+      ? `Debajo del minimo (${inclusionWarning.limitPct}%)`
+      : `Encima del maximo (${inclusionWarning.limitPct}%)`
+    : null;
+
+  return (
+    <View
+      style={[
+        styles.dietItem,
+        { backgroundColor: colors.card },
+        hasInclusionWarning && {
+          borderWidth: 1,
+          borderColor: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
+        },
+      ]}
+    >
+      <View style={styles.dietItemInfo}>
+        <Text style={[styles.dietItemName, { color: colors.text }]}>{item.name}</Text>
+        {rangeText && (
+          <Text style={[styles.limitHint, { color: colors.textSecondary }]}>Rango recomendado: {rangeText}</Text>
+        )}
+        {warningText && (
+          <Text
+            style={[
+              styles.limitWarning,
+              {
+                color: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
+              },
+            ]}
+          >
+            {warningText}
+          </Text>
+        )}
+      </View>
+      <TextInput
+        style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
+        value={percentageDraft ?? item.pct.toString()}
+        keyboardType="decimal-pad"
+        onChangeText={(text) => onPercentageChange(item.id, text)}
+      />
+      <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
+      <TouchableOpacity onPress={() => onRemove(item.id)}>
+        <Text style={[styles.removeBtn, { color: colors.error }]}>✕</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+// --- Pure utility functions ---
+
+function parseDecimalInput(value: string): number | null {
+  const normalized = value.replace(',', '.').trim();
+
+  if (!normalized || normalized.endsWith('.')) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+// --- Main Component ---
 
 export default function CreateDietScreen({ navigation }: Props): React.JSX.Element {
   const [showModal, setShowModal] = useState(false);
@@ -19,7 +109,7 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
   const { 
     currentDiet, addIngredient, updatePercentage, removeIngredient, clearDiet, 
     animalType, darkMode, loadFromStorage, setFullDiet
-  } = useDietStore();
+  } = useDietStore(useShallow((s) => ({ currentDiet: s.currentDiet, addIngredient: s.addIngredient, updatePercentage: s.updatePercentage, removeIngredient: s.removeIngredient, clearDiet: s.clearDiet, animalType: s.animalType, darkMode: s.darkMode, loadFromStorage: s.loadFromStorage, setFullDiet: s.setFullDiet })));
   
   useEffect(() => {
     loadFromStorage();
@@ -45,18 +135,7 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
     });
   }, [currentDiet]);
 
-  const parseDecimalInput = (value: string): number | null => {
-    const normalized = value.replace(',', '.').trim();
-
-    if (!normalized || normalized.endsWith('.')) {
-      return null;
-    }
-
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
-  const handlePercentageChange = (id: string, value: string) => {
+  const handlePercentageChange = useCallback((id: string, value: string) => {
     setPercentageDrafts((prev) => ({ ...prev, [id]: value }));
 
     if (!value.trim()) {
@@ -68,53 +147,67 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
     if (parsed !== null) {
       updatePercentage(id, parsed);
     }
-  };
+  }, [updatePercentage]);
 
   const totalPct = getTotalPercentage(currentDiet);
-  const filteredIngredients = ingredients.filter(i => {
+  const filteredIngredients = useMemo(() => ingredients.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCategory = !selectedCategory || i.category === selectedCategory;
     return matchSearch && matchCategory;
-  });
+  }), [search, selectedCategory]);
 
-  const validation = validateDiet(currentDiet, animalType);
-  const compliance = getComplianceStatus(currentDiet, animalType);
-  const inclusionWarningByIngredient = validation.warningDetails.reduce((acc, warning) => {
+  const dietResults = useMemo(() => calculateDiet(currentDiet), [currentDiet]);
+  const validation = useMemo(() => validateDiet(currentDiet, animalType, dietResults), [currentDiet, animalType, dietResults]);
+  const compliance = useMemo(() => getComplianceStatus(currentDiet, animalType, dietResults), [currentDiet, animalType, dietResults]);
+  const inclusionWarningByIngredient = useMemo(() => validation.warningDetails.reduce((acc, warning) => {
     acc[warning.ingredientId] = warning;
     return acc;
-  }, {} as Record<string, (typeof validation.warningDetails)[number]>);
+  }, {} as Record<string, (typeof validation.warningDetails)[number]>), [validation]);
 
-  const colors = darkMode ? {
+  const colors = useMemo(() => darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
     warning: '#FFA000', error: '#f44336', success: '#4CAF50'
   } : {
     bg: '#f5f5f5', card: '#FFF', text: '#333', textSecondary: '#666', accent: '#4CAF50',
     warning: '#FFA000', error: '#f44336', success: '#4CAF50'
-  };
+  }, [darkMode]);
 
-  const handleCalculate = () => {
+  const handleCalculate = useCallback(() => {
     if (currentDiet.length === 0) {
       alert('Agregá al menos un ingrediente');
       return;
     }
     navigation.navigate('DietResult');
-  };
+  }, [currentDiet.length, navigation]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     if (currentDiet.length === 0) return;
     if (confirm('¿Borrar la dieta actual?')) {
       clearDiet();
     }
-  };
+  }, [currentDiet.length, clearDiet]);
 
-  const getComplianceColor = (status: string) => {
+  const getComplianceColor = useCallback((status: string) => {
     switch (status) {
       case 'green': return colors.success;
       case 'yellow': return colors.warning;
       case 'red': return colors.error;
       default: return colors.textSecondary;
     }
-  };
+  }, [colors]);
+
+  const renderIngredientOption = useCallback(({ item }: { item: typeof ingredients[number] }) => (
+    <TouchableOpacity
+      style={[styles.ingredientOption, { borderBottomColor: colors.bg }]}
+      onPress={() => { addIngredient(item); setShowModal(false); setSearch(''); }}
+    >
+      <View>
+        <Text style={[styles.ingredientOptionText, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.ingredientOptionCategory, { color: colors.textSecondary }]}>{item.category}</Text>
+      </View>
+      <Text style={[styles.ingredientOptionNe, { color: colors.accent }]}>NE: {item.ne}</Text>
+    </TouchableOpacity>
+  ), [colors, addIngredient]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -153,18 +246,7 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
               data={filteredIngredients}
               keyExtractor={(item) => item.id}
               style={styles.ingredientList}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.ingredientOption, { borderBottomColor: colors.bg }]}
-                  onPress={() => { addIngredient(item); setShowModal(false); setSearch(''); }}
-                >
-                  <View>
-                    <Text style={[styles.ingredientOptionText, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.ingredientOptionCategory, { color: colors.textSecondary }]}>{item.category}</Text>
-                  </View>
-                  <Text style={[styles.ingredientOptionNe, { color: colors.accent }]}>NE: {item.ne}</Text>
-                </TouchableOpacity>
-              )}
+              renderItem={renderIngredientOption}
             />
             <TouchableOpacity style={[styles.closeModalBtn, { backgroundColor: colors.accent }]} onPress={() => { setShowModal(false); setSearch(''); }}>
               <Text style={styles.closeModalBtnText}>Cerrar</Text>
@@ -255,66 +337,16 @@ export default function CreateDietScreen({ navigation }: Props): React.JSX.Eleme
         {currentDiet.length === 0 ? (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Tocá "+ Agregar" para comenzar</Text>
         ) : (
-          currentDiet.map((item, idx) => (
-            (() => {
-              const ingredient = getIngredientById(item.id);
-              const limits = ingredient?.inclusionLimits;
-              const inclusionWarning = inclusionWarningByIngredient[item.id];
-              const hasInclusionWarning = Boolean(inclusionWarning);
-
-              const rangeText = limits
-                ? `${limits.minPct ?? 0}% - ${limits.maxPct ?? 100}%`
-                : null;
-
-              const warningText = inclusionWarning
-                ? inclusionWarning.reason === 'below-min'
-                  ? `Debajo del minimo (${inclusionWarning.limitPct}%)`
-                  : `Encima del maximo (${inclusionWarning.limitPct}%)`
-                : null;
-
-              return (
-                <View
-                  key={idx}
-                  style={[
-                    styles.dietItem,
-                    { backgroundColor: colors.card },
-                    hasInclusionWarning && {
-                      borderWidth: 1,
-                      borderColor: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
-                    },
-                  ]}
-                >
-                  <View style={styles.dietItemInfo}>
-                    <Text style={[styles.dietItemName, { color: colors.text }]}>{item.name}</Text>
-                    {rangeText && (
-                      <Text style={[styles.limitHint, { color: colors.textSecondary }]}>Rango recomendado: {rangeText}</Text>
-                    )}
-                    {warningText && (
-                      <Text
-                        style={[
-                          styles.limitWarning,
-                          {
-                            color: inclusionWarning?.reason === 'below-min' ? colors.warning : colors.error,
-                          },
-                        ]}
-                      >
-                        {warningText}
-                      </Text>
-                    )}
-                  </View>
-                  <TextInput
-                    style={[styles.pctInput, { backgroundColor: colors.bg, color: colors.text }]}
-                    value={percentageDrafts[item.id] ?? item.pct.toString()}
-                    keyboardType="decimal-pad"
-                    onChangeText={(text) => handlePercentageChange(item.id, text)}
-                  />
-                  <Text style={[styles.pctSign, { color: colors.textSecondary }]}>%</Text>
-                  <TouchableOpacity onPress={() => removeIngredient(item.id)}>
-                    <Text style={[styles.removeBtn, { color: colors.error }]}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })()
+          currentDiet.map((item) => (
+            <IngredientRow
+              key={item.id}
+              item={item}
+              inclusionWarning={inclusionWarningByIngredient[item.id]}
+              percentageDraft={percentageDrafts[item.id]}
+              colors={colors}
+              onPercentageChange={handlePercentageChange}
+              onRemove={removeIngredient}
+            />
           ))
         )}
 

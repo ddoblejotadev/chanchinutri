@@ -142,8 +142,8 @@ export function getTotalPercentage(diet: DietItem[]): number {
   return diet.reduce((sum, item) => sum + item.pct, 0);
 }
 
-export function validateDiet(diet: DietItem[], animalType: string): DietValidationResult {
-  const results = calculateDiet(diet);
+export function validateDiet(diet: DietItem[], animalType: string, precomputed?: DietResults): DietValidationResult {
+  const results = precomputed ?? calculateDiet(diet);
   const requirements = ANIMAL_TYPES[animalType as keyof typeof ANIMAL_TYPES]?.requirements;
   const warnings: string[] = [];
   const warningDetails: IngredientInclusionWarning[] = [];
@@ -201,9 +201,10 @@ export function validateDiet(diet: DietItem[], animalType: string): DietValidati
 
 export function getComplianceStatus(
   diet: DietItem[],
-  animalType: string
+  animalType: string,
+  precomputed?: DietResults,
 ): ComplianceStatus {
-  const results = calculateDiet(diet);
+  const results = precomputed ?? calculateDiet(diet);
   const requirements = ANIMAL_TYPES[animalType as keyof typeof ANIMAL_TYPES]?.requirements;
   
   if (!requirements) {

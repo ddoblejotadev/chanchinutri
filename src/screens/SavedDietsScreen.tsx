@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp, useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../navigation/AppNavigation';
 import { useDietStore, SavedDiet, ANIMAL_TYPES, type AnimalType } from '../store/dietStore';
+import { useShallow } from 'zustand/react/shallow';
 import { exportDietToPDF } from '../utils/pdfExport';
 import {
   applySavedDietQuery,
@@ -24,7 +25,7 @@ const PAGE_SIZE = 6;
 const ANIMAL_FILTER_OPTIONS: SavedDietAnimalTypeFilter[] = ['all', 'lechon', 'crecimiento', 'cerda', 'reproductor'];
 
 export default function SavedDietsScreen({ navigation }: Props) {
-  const { savedDiets, loadDiet, deleteSaved, darkMode, loadFromStorage } = useDietStore();
+  const { savedDiets, loadDiet, deleteSaved, darkMode, loadFromStorage } = useDietStore(useShallow((s) => ({ savedDiets: s.savedDiets, loadDiet: s.loadDiet, deleteSaved: s.deleteSaved, darkMode: s.darkMode, loadFromStorage: s.loadFromStorage })));
   const tabBarHeight = useBottomTabBarHeight();
   const [search, setSearch] = React.useState('');
   const [selectedAnimalType, setSelectedAnimalType] = React.useState<SavedDietAnimalTypeFilter>('all');
@@ -35,39 +36,39 @@ export default function SavedDietsScreen({ navigation }: Props) {
     loadFromStorage();
   }, []);
 
-  const colors = darkMode ? {
+  const colors = useMemo(() => darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50', error: '#f44336'
   } : {
     bg: '#f5f5f5', card: '#FFF', text: '#333', textSecondary: '#666', accent: '#4CAF50', error: '#f44336'
-  };
+  }, [darkMode]);
 
-  const handleLoad = (diet: SavedDiet) => {
+  const handleLoad = useCallback((diet: SavedDiet) => {
     loadDiet(diet);
     navigation.navigate('CreateDiet');
-  };
+  }, [loadDiet, navigation]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     Alert.alert('Confirmar', '¿Eliminar esta dieta?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Eliminar', style: 'destructive', onPress: () => deleteSaved(id) },
     ]);
-  };
+  }, [deleteSaved]);
 
-  const handleExportPDF = async (diet: SavedDiet) => {
+  const handleExportPDF = useCallback(async (diet: SavedDiet) => {
     try {
       await exportDietToPDF(diet);
     } catch (error) {
       Alert.alert('Error', 'No se pudo exportar el PDF');
     }
-  };
+  }, []);
 
-  const queryResult = applySavedDietQuery(savedDiets, {
+  const queryResult = useMemo(() => applySavedDietQuery(savedDiets, {
     search,
     animalType: selectedAnimalType,
     sortByDate,
     page,
     pageSize: PAGE_SIZE,
-  });
+  }), [savedDiets, search, selectedAnimalType, sortByDate, page]);
 
   React.useEffect(() => {
     if (queryResult.currentPage < page) {
@@ -104,7 +105,7 @@ export default function SavedDietsScreen({ navigation }: Props) {
     selectedAnimalType !== 'all' ||
     sortByDate !== SAVED_DIET_SORT_BY_DATE.NEWEST;
 
-  const renderItem = ({ item }: { item: SavedDiet }) => (
+  const renderItem = useCallback(({ item }: { item: SavedDiet }) => (
     <View style={[styles.dietItem, { backgroundColor: colors.card }]}>
       <TouchableOpacity style={styles.dietInfo} onPress={() => handleLoad(item)}>
         <Text style={[styles.dietName, { color: colors.text }]}>{item.name}</Text>
@@ -125,7 +126,7 @@ export default function SavedDietsScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  ), [colors, handleLoad, handleDelete, handleExportPDF]);
 
   if (savedDiets.length === 0) {
     return (
@@ -210,6 +211,9 @@ export default function SavedDietsScreen({ navigation }: Props) {
         data={queryResult.items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        windowSize={5}
         contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}
         ListEmptyComponent={
           <View style={styles.emptyFiltersContainer}>

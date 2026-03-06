@@ -17,4 +17,17 @@ describe('settings navigation regression', () => {
     expect(source).toMatch(/useBottomTabBarHeight/);
     expect(source).toMatch(/contentContainerStyle=\{\[styles\.scrollContent,\s*\{\s*paddingBottom:\s*tabBarHeight\s*\+\s*24\s*\}\]\}/);
   });
+
+  it('incluye seccion de cuenta con auth store integration', () => {
+    const settingsFile = path.join(__dirname, '..', 'src', 'screens', 'PriceSettingsScreen.tsx');
+    const source = fs.readFileSync(settingsFile, 'utf8');
+
+    // Auth store imported and used
+    expect(source).toContain('useAuthStore');
+    expect(source).toContain('isAuthenticated');
+    expect(source).toContain('signOut');
+
+    // Account section present
+    expect(source).toContain('Cuenta');
+  });
 });

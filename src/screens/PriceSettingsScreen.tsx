@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore } from '../store/dietStore';
+import { useAuthStore } from '../store/authStore';
+import { useShallow } from 'zustand/react/shallow';
 import { defaultPrices, getIngredientPrice } from '../data/prices';
 import { ingredients } from '../data/ingredients';
 
@@ -11,7 +16,9 @@ const ingredientsWithPrices = ingredients.filter(i =>
 );
 
 export default function PriceSettingsScreen() {
-  const { darkMode, updatePrice, resetPrices } = useDietStore();
+  const { darkMode, updatePrice, resetPrices } = useDietStore(useShallow((s) => ({ darkMode: s.darkMode, updatePrice: s.updatePrice, resetPrices: s.resetPrices })));
+  const { user, isAuthenticated, signOut } = useAuthStore(useShallow((s) => ({ user: s.user, isAuthenticated: s.isAuthenticated, signOut: s.signOut })));
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const tabBarHeight = useBottomTabBarHeight();
@@ -80,11 +87,11 @@ export default function PriceSettingsScreen() {
     );
   };
 
-  const colors = darkMode ? {
+  const colors = useMemo(() => darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
   } : {
     bg: '#f5f5f5', card: '#FFF', text: '#333', textSecondary: '#666', accent: '#4CAF50',
-  };
+  }, [darkMode]);
 
   return (
     <ScrollView
@@ -138,6 +145,39 @@ export default function PriceSettingsScreen() {
         <TouchableOpacity style={[styles.resetBtn, { backgroundColor: colors.card, borderColor: colors.accent }]} onPress={handleReset}>
           <Text style={[styles.resetBtnText, { color: colors.accent }]}>Restablecer precios por defecto</Text>
         </TouchableOpacity>
+
+        {/* Account Section */}
+        <View style={[styles.accountSection, { backgroundColor: colors.card }]}>
+          <Text style={[styles.accountTitle, { color: colors.text }]}>Cuenta</Text>
+          {isAuthenticated && user ? (
+            <View>
+              <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{user.email}</Text>
+              <TouchableOpacity onPress={signOut}>
+                <Text style={[styles.signOutLink, { color: colors.accent }]}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={[styles.accountHint, { color: colors.textSecondary }]}>
+                Iniciá sesión para guardar y sincronizar tus dietas
+              </Text>
+              <View style={styles.accountButtons}>
+                <TouchableOpacity
+                  style={[styles.accountBtn, { backgroundColor: colors.accent }]}
+                  onPress={() => navigation.navigate('Login')}
+                >
+                  <Text style={styles.accountBtnText}>Iniciar sesión</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.accountBtnOutline, { borderColor: colors.accent }]}
+                  onPress={() => navigation.navigate('Register')}
+                >
+                  <Text style={[styles.accountBtnOutlineText, { color: colors.accent }]}>Crear cuenta</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
     </ScrollView>
   );
@@ -165,4 +205,14 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   resetBtn: { padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10, borderWidth: 1 },
   resetBtnText: { fontSize: 14 },
+  accountSection: { padding: 15, borderRadius: 8, marginTop: 20 },
+  accountTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+  accountEmail: { fontSize: 14, marginBottom: 8 },
+  signOutLink: { fontSize: 14, fontWeight: '600', paddingVertical: 4 },
+  accountHint: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  accountButtons: { flexDirection: 'row', gap: 10 },
+  accountBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8 },
+  accountBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  accountBtnOutline: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, borderWidth: 1.5 },
+  accountBtnOutlineText: { fontWeight: '600', fontSize: 14 },
 });

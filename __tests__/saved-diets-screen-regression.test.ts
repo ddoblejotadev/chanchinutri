@@ -35,6 +35,10 @@ jest.mock('@react-navigation/bottom-tabs', () => ({
   useBottomTabBarHeight: jest.fn(),
 }));
 
+jest.mock('zustand/react/shallow', () => ({
+  useShallow: (selector: Function) => selector,
+}));
+
 type ReactElementNode = React.ReactElement<any, any>;
 
 function createDiet(id: string, name: string, animalType: string, createdAt: string): SavedDiet {
@@ -128,6 +132,8 @@ describe('saved diets screen regression', () => {
     jest.spyOn(React, 'useEffect').mockImplementation((effect: React.EffectCallback) => {
       effect();
     });
+    jest.spyOn(React, 'useMemo').mockImplementation((factory: () => unknown) => factory());
+    jest.spyOn(React, 'useCallback').mockImplementation((fn: Function) => fn);
   });
 
   afterEach(() => {

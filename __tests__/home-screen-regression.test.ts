@@ -26,4 +26,18 @@ describe('home screen regression', () => {
 
     expect(source).toContain(`navigation.navigate('CreateDiet')`);
   });
+
+  it('muestra sync condicional segun autenticacion (auth-gated UI)', () => {
+    const homeScreenFile = path.join(__dirname, '..', 'src', 'screens', 'HomeScreen.tsx');
+    const source = fs.readFileSync(homeScreenFile, 'utf8');
+
+    // Imports auth store
+    expect(source).toContain('useAuthStore');
+    expect(source).toContain('isAuthenticated');
+
+    // Conditional rendering: sync controls for authenticated, prompt for unauthenticated
+    expect(source).toContain('authPromptCard');
+    expect(source).toContain('Iniciar sesión');
+    expect(source).toContain('Crear cuenta');
+  });
 });

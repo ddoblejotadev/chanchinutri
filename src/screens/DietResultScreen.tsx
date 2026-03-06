@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Dimensions } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigation';
 import { useDietStore, ANIMAL_TYPES } from '../store/dietStore';
+import { useAuthStore } from '../store/authStore';
+import { useShallow } from 'zustand/react/shallow';
 import { calculateDiet, validateDiet, getComplianceStatus } from '../engine/calculations';
 import { exportDietToPDF } from '../utils/pdfExport';
 import { calculateDietCost, calculateCostPerTonne } from '../data/prices';
-import { ingredients } from '../data/ingredients';
 
 type ThemeColors = {
   bg: string;
@@ -25,6 +29,7 @@ type ComplianceItemProps = {
   unit: string;
   status: string;
   colors: ThemeColors;
+  getComplianceColor: (status: string) => string;
 };
 
 type ValueCardProps = {
@@ -34,10 +39,64 @@ type ValueCardProps = {
   colors: ThemeColors;
 };
 
+type ResultCardProps = {
+  label: string;
+  value: number;
+  unit: string;
+  status?: string;
+  colors: ThemeColors;
+  getComplianceColor: (status: string) => string;
+};
+
+// --- Extracted Components ---
+
+const ComplianceItem = React.memo(function ComplianceItem({ label, value, target, unit, status, colors, getComplianceColor }: ComplianceItemProps): React.JSX.Element {
+  const statusColor = getComplianceColor(status);
+  return (
+    <View style={styles.complianceItem}>
+      <Text style={[styles.complianceLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.complianceValue, { color: statusColor }]}>{value} {unit}</Text>
+      <Text style={[styles.complianceTarget, { color: colors.textSecondary }]}>Objetivo: {target}</Text>
+    </View>
+  );
+});
+
+const ValueCard = React.memo(function ValueCard({ label, value, unit, colors }: ValueCardProps): React.JSX.Element {
+  return (
+    <View style={[styles.valueCard, { backgroundColor: colors.card }]}>
+      <Text style={[styles.valueLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.valueText, { color: colors.text }]}>{value} {unit}</Text>
+    </View>
+  );
+});
+
+const ResultCard = React.memo(function ResultCard({ label, value, unit, status, colors, getComplianceColor }: ResultCardProps): React.JSX.Element {
+  const color = status ? getComplianceColor(status) : colors.accent;
+  return (
+    <View style={[styles.resultCard, { backgroundColor: colors.card }]}>
+      <View style={styles.resultHeader}>
+        <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>{label}</Text>
+        {status && <View style={[styles.statusDot, { backgroundColor: color }]} />}
+      </View>
+      <Text style={[styles.resultValue, { color }]}>{value} <Text style={styles.resultUnit}>{unit}</Text></Text>
+    </View>
+  );
+});
+
+// --- Module-scope constants ---
+
+const chartColors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336'];
+
+const chartConfig = {
+  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+};
+
+// --- Main Component ---
+
 export default function DietResultScreen(): React.JSX.Element {
   const [dietName, setDietName] = useState('');
   const [budget, setBudget] = useState('');
-  const { currentDiet, savedDiets, saveDiet, clearDiet, animalType, darkMode, loadDiet, updatePrice } = useDietStore();
+  const { currentDiet, savedDiets, saveDiet, clearDiet, animalType, darkMode, loadDiet, updatePrice } = useDietStore(useShallow((s) => ({ currentDiet: s.currentDiet, savedDiets: s.savedDiets, saveDiet: s.saveDiet, clearDiet: s.clearDiet, animalType: s.animalType, darkMode: s.darkMode, loadDiet: s.loadDiet, updatePrice: s.updatePrice })));
 
   const parseLocalizedDecimal = (value: string): number | null => {
     const normalized = value.replace(',', '.').trim();
@@ -49,9 +108,9 @@ export default function DietResultScreen(): React.JSX.Element {
     return Number.isFinite(parsed) ? parsed : null;
   };
   
-  const results = calculateDiet(currentDiet);
-  const validation = validateDiet(currentDiet, animalType);
-  const compliance = getComplianceStatus(currentDiet, animalType);
+  const results = useMemo(() => calculateDiet(currentDiet), [currentDiet]);
+  const validation = useMemo(() => validateDiet(currentDiet, animalType, results), [currentDiet, animalType, results]);
+  const compliance = useMemo(() => getComplianceStatus(currentDiet, animalType, results), [currentDiet, animalType, results]);
   const requirements = ANIMAL_TYPES[animalType].requirements;
   
   // Cost calculation
@@ -65,21 +124,19 @@ export default function DietResultScreen(): React.JSX.Element {
   const inclusionWarnings = validation.warningDetails;
   const nutritionWarnings = validation.warnings.filter((warning) => !warning.startsWith('Inclusion '));
 
-  const colors = darkMode ? {
+  const colors = useMemo(() => darkMode ? {
     bg: '#121212', card: '#1E1E1E', text: '#FFF', textSecondary: '#AAA', accent: '#4CAF50',
     warning: '#FFA000', error: '#f44336', success: '#4CAF50'
   } : {
     bg: '#f5f5f5', card: '#FFF', text: '#333', textSecondary: '#666', accent: '#4CAF50',
     warning: '#FFA000', error: '#f44336', success: '#4CAF50'
-  };
+  }, [darkMode]);
 
   // Chart data - top 5 ingredients by percentage
-  const chartData = currentDiet
+  const chartData = useMemo(() => [...currentDiet]
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 5)
     .map((item, index) => {
-      const ing = ingredients.find(i => i.id === item.id);
-      const chartColors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336'];
       return {
         name: item.name.length > 10 ? item.name.substring(0, 10) + '...' : item.name,
         population: item.pct,
@@ -87,46 +144,43 @@ export default function DietResultScreen(): React.JSX.Element {
         legendFontColor: colors.textSecondary,
         legendFontSize: 12,
       };
-    });
+    }), [currentDiet, colors.textSecondary]);
 
   const screenWidth = Dimensions.get('window').width;
-  const chartConfig = {
-    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  };
 
-  const getComplianceColor = (status: string) => {
+  const getComplianceColor = useCallback((status: string) => {
     switch (status) {
       case 'green': return colors.success;
       case 'yellow': return colors.warning;
       case 'red': return colors.error;
       default: return colors.textSecondary;
     }
-  };
+  }, [colors]);
 
-  // Helper components for simplified display
-  const ComplianceItem = ({ label, value, target, unit, status, colors }: ComplianceItemProps): React.JSX.Element => {
-    const statusColor = getComplianceColor(status);
-    return (
-      <View style={styles.complianceItem}>
-        <Text style={[styles.complianceLabel, { color: colors.textSecondary }]}>{label}</Text>
-        <Text style={[styles.complianceValue, { color: statusColor }]}>{value} {unit}</Text>
-        <Text style={[styles.complianceTarget, { color: colors.textSecondary }]}>Objetivo: {target}</Text>
-      </View>
-    );
-  };
+  // Helper components for simplified display have been extracted to module scope
 
-  const ValueCard = ({ label, value, unit, colors }: ValueCardProps): React.JSX.Element => (
-    <View style={[styles.valueCard, { backgroundColor: colors.card }]}>
-      <Text style={[styles.valueLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.valueText, { color: colors.text }]}>{value} {unit}</Text>
-    </View>
-  );
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const handleSave = async () => {
     if (!dietName.trim()) {
       Alert.alert('Error', 'Ingresá un nombre para la dieta');
       return;
     }
+
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      Alert.alert(
+        'Cuenta requerida',
+        'Para guardar dietas necesitás una cuenta. ¿Querés crear una?',
+        [
+          { text: 'Ahora no', style: 'cancel' },
+          { text: 'Crear cuenta', onPress: () => navigation.navigate('Register') },
+          { text: 'Iniciar sesión', onPress: () => navigation.navigate('Login') },
+        ]
+      );
+      return;
+    }
+
     saveDiet(dietName, results);
     setDietName('');
     Alert.alert('Éxito', 'Dieta guardada correctamente');
@@ -147,19 +201,6 @@ export default function DietResultScreen(): React.JSX.Element {
     } catch (error) {
       Alert.alert('Error', 'No se pudo exportar el PDF');
     }
-  };
-
-  const ResultCard = ({ label, value, unit, status }: { label: string; value: number; unit: string; status?: string }) => {
-    const color = status ? getComplianceColor(status) : colors.accent;
-    return (
-      <View style={[styles.resultCard, { backgroundColor: colors.card }]}>
-        <View style={styles.resultHeader}>
-          <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>{label}</Text>
-          {status && <View style={[styles.statusDot, { backgroundColor: color }]} />}
-        </View>
-        <Text style={[styles.resultValue, { color }]}>{value} <Text style={styles.resultUnit}>{unit}</Text></Text>
-      </View>
-    );
   };
 
   return (
@@ -243,9 +284,9 @@ export default function DietResultScreen(): React.JSX.Element {
         <View style={[styles.complianceCard, { backgroundColor: colors.card }]}>
           <Text style={[styles.complianceTitle, { color: colors.text }]}>✅ Cumplimiento Nutricional</Text>
           <View style={styles.complianceGrid}>
-            <ComplianceItem label="Energía Neta" value={results.ne} target={`${requirements.ne.min}-${requirements.ne.max}`} unit="kcal/kg" status={compliance.ne} colors={colors} />
-            <ComplianceItem label="Lisina" value={results.lys} target={`${requirements.lys.min}-${requirements.lys.max}`} unit="g/kg" status={compliance.lys} colors={colors} />
-            <ComplianceItem label="Fósforo" value={results.p} target={`${requirements.p.min}-${requirements.p.max}`} unit="g/kg" status={compliance.p} colors={colors} />
+            <ComplianceItem label="Energía Neta" value={results.ne} target={`${requirements.ne.min}-${requirements.ne.max}`} unit="kcal/kg" status={compliance.ne} colors={colors} getComplianceColor={getComplianceColor} />
+            <ComplianceItem label="Lisina" value={results.lys} target={`${requirements.lys.min}-${requirements.lys.max}`} unit="g/kg" status={compliance.lys} colors={colors} getComplianceColor={getComplianceColor} />
+            <ComplianceItem label="Fósforo" value={results.p} target={`${requirements.p.min}-${requirements.p.max}`} unit="g/kg" status={compliance.p} colors={colors} getComplianceColor={getComplianceColor} />
           </View>
         </View>
 

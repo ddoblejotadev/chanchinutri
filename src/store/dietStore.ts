@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, TABLES } from '../lib/supabase';
 import { setAllCustomPrices, getIngredientPrice } from '../data/prices';
+import { getDeviceId, getCachedDeviceId } from '../lib/deviceId';
+import { useAuthStore } from './authStore';
 
 export interface InclusionLimits {
   minPct?: number;
@@ -84,6 +86,8 @@ interface CloudDietRow {
   dm: number;
   animal_type: string;
   created_at: string;
+  device_id: string | null;
+  user_id: string | null;
 }
 
 export type AnimalType = 'lechon' | 'crecimiento' | 'cerda' | 'reproductor';
@@ -154,6 +158,59 @@ export const ANIMAL_TYPES: Record<AnimalType, { label: string; requirements: Nut
   },
 };
 
+// --- Debounce utility for AsyncStorage writes ---
+let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let _pendingSave: (() => Promise<void>) | null = null;
+
+export function debouncedSave(saveFn: () => Promise<void>): void {
+  _pendingSave = saveFn;
+  if (_debounceTimer !== null) {
+    clearTimeout(_debounceTimer);
+  }
+  _debounceTimer = setTimeout(() => {
+    _debounceTimer = null;
+    const fn = _pendingSave;
+    _pendingSave = null;
+    if (fn) {
+      fn().catch((e) => console.error('Error in debounced save:', e));
+    }
+  }, 300);
+}
+
+export function flushDebouncedSave(): void {
+  if (_debounceTimer !== null) {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = null;
+  }
+  if (_pendingSave) {
+    const fn = _pendingSave;
+    _pendingSave = null;
+    fn().catch((e) => console.error('Error flushing save:', e));
+  }
+}
+
+/** Reset debounce state — test-only helper */
+export function _resetDebouncedSave(): void {
+  if (_debounceTimer !== null) {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = null;
+  }
+  _pendingSave = null;
+}
+
+// Flush pending saves when app goes to background/inactive
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { AppState } = require('react-native') as typeof import('react-native');
+  AppState.addEventListener('change', (nextAppState: string) => {
+    if (nextAppState === 'background' || nextAppState === 'inactive') {
+      flushDebouncedSave();
+    }
+  });
+} catch {
+  // In test environments, react-native may not be available — skip listener
+}
+
 interface DietState {
   animalType: AnimalType;
   currentDiet: DietItem[];
@@ -162,6 +219,7 @@ interface DietState {
   isSyncing: boolean;
   lastSynced: string | null;
   syncEnabled: boolean;
+  dirtyIds: Set<string>;
   setAnimalType: (type: AnimalType) => void;
   addIngredient: (ingredient: Ingredient) => void;
   updatePercentage: (id: string, pct: number) => void;
@@ -189,6 +247,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
   isSyncing: false,
   lastSynced: null,
   syncEnabled: true, // Por defecto activado
+  dirtyIds: new Set<string>(),
 
   setAnimalType: (type) => set({ animalType: type }),
 
@@ -196,27 +255,27 @@ export const useDietStore = create<DietState>()((set, get) => ({
     const { currentDiet } = get();
     if (currentDiet.find(d => d.id === ingredient.id)) return;
     set({ currentDiet: [...currentDiet, { id: ingredient.id, name: ingredient.name, pct: 0 }] });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   updatePercentage: (id, pct) => {
     set({ currentDiet: get().currentDiet.map(d => d.id === id ? { ...d, pct } : d) });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   removeIngredient: (id) => {
     set({ currentDiet: get().currentDiet.filter(d => d.id !== id) });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   clearDiet: () => {
     set({ currentDiet: [] });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   setFullDiet: (items) => {
     set({ currentDiet: items });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   loadDiet: (diet) => {
@@ -227,7 +286,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
   },
 
   saveDiet: async (name, results) => {
-    const { currentDiet, savedDiets, animalType, syncEnabled } = get();
+    const { currentDiet, savedDiets, animalType } = get();
     const newDiet: SavedDiet = {
       id: Date.now().toString(),
       name,
@@ -236,42 +295,42 @@ export const useDietStore = create<DietState>()((set, get) => ({
       animalType,
       createdAt: new Date().toISOString(),
     };
-    set({ savedDiets: [...savedDiets, newDiet] });
+    set({
+      savedDiets: [...savedDiets, newDiet],
+      dirtyIds: new Set([...get().dirtyIds, newDiet.id]),
+    });
     get().saveToStorage();
-    
-    // Sync to cloud if enabled
-    if (syncEnabled) {
-      try {
-        await supabase.from(TABLES.SAVED_DIETS).upsert({
-          id: newDiet.id,
-          name: newDiet.name,
-          items: JSON.stringify(newDiet.items),
-          ne: newDiet.ne,
-          lys: newDiet.lys,
-          met: newDiet.met,
-          thr: newDiet.thr,
-          trp: newDiet.trp,
-          val: newDiet.val,
-          ile: newDiet.ile,
-          p: newDiet.p,
-          dm: newDiet.dm,
-          animal_type: newDiet.animalType,
-          created_at: newDiet.createdAt,
-        });
-      } catch (error) {
-        console.error('Error syncing to cloud:', error);
-      }
-    }
   },
 
   deleteSaved: (id) => {
     set({ savedDiets: get().savedDiets.filter(d => d.id !== id) });
-    get().saveToStorage();
+
+    // Remove from dirtyIds if present
+    const { dirtyIds, syncEnabled } = get();
+    if (dirtyIds.has(id)) {
+      const next = new Set(dirtyIds);
+      next.delete(id);
+      set({ dirtyIds: next });
+    }
+
+    debouncedSave(() => get().saveToStorage());
+
+    // Fire-and-forget cloud delete when sync is enabled AND user is authenticated
+    const user = useAuthStore.getState().user;
+    if (syncEnabled && user) {
+      supabase
+        .from(TABLES.SAVED_DIETS)
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error('Error deleting from cloud:', error);
+        });
+    }
   },
 
   toggleDarkMode: () => {
     set({ darkMode: !get().darkMode });
-    get().saveToStorage();
+    debouncedSave(() => get().saveToStorage());
   },
 
   loadFromStorage: async () => {
@@ -282,6 +341,7 @@ export const useDietStore = create<DietState>()((set, get) => ({
         set({
           savedDiets: parsed.savedDiets || [],
           darkMode: parsed.darkMode || false,
+          dirtyIds: new Set<string>(parsed.dirtyIds || []),
         });
       }
       
@@ -291,6 +351,14 @@ export const useDietStore = create<DietState>()((set, get) => ({
         const prices = JSON.parse(pricesData);
         setAllCustomPrices(prices);
       }
+
+      // Ensure device ID is generated and cached for later synchronous access.
+      // Failure is non-fatal — sync now depends on auth, not device ID.
+      try {
+        await getDeviceId();
+      } catch (e) {
+        console.warn('Could not initialize device ID (non-fatal):', e);
+      }
     } catch (e) {
       console.error('Error loading from storage:', e);
     }
@@ -298,8 +366,12 @@ export const useDietStore = create<DietState>()((set, get) => ({
 
   saveToStorage: async () => {
     try {
-      const { savedDiets, darkMode } = get();
-      await AsyncStorage.setItem('evapig-data', JSON.stringify({ savedDiets, darkMode }));
+      const { savedDiets, darkMode, dirtyIds } = get();
+      await AsyncStorage.setItem('evapig-data', JSON.stringify({
+        savedDiets,
+        darkMode,
+        dirtyIds: Array.from(dirtyIds),
+      }));
     } catch (e) {
       console.error('Error saving to storage:', e);
     }
@@ -315,32 +387,69 @@ export const useDietStore = create<DietState>()((set, get) => ({
   },
 
   syncToCloud: async () => {
-    const { savedDiets, isSyncing } = get();
+    const { isSyncing } = get();
     if (isSyncing) return;
-    
+
     set({ isSyncing: true });
     try {
-      // Upload all saved diets to cloud
-      for (const diet of savedDiets) {
-        await supabase.from(TABLES.SAVED_DIETS).upsert({
-          id: diet.id,
-          name: diet.name,
-          items: JSON.stringify(diet.items),
-          ne: diet.ne,
-          lys: diet.lys,
-          met: diet.met,
-          thr: diet.thr,
-          trp: diet.trp,
-          val: diet.val,
-          ile: diet.ile,
-          p: diet.p,
-          dm: diet.dm,
-          animal_type: diet.animalType,
-          created_at: diet.createdAt,
-        });
+      // Require authenticated user for cloud sync
+      const user = useAuthStore.getState().user;
+      if (!user) {
+        // Not authenticated — skip cloud sync
+        return;
       }
-      set({ lastSynced: new Date().toISOString() });
+
+      const { dirtyIds, savedDiets } = get();
+
+      // Nothing to sync — just update timestamp
+      if (dirtyIds.size === 0) {
+        set({ lastSynced: new Date().toISOString() });
+        return;
+      }
+
+      // Filter to only dirty diets and map to cloud row format
+      const rows: CloudDietRow[] = savedDiets
+        .filter((d) => dirtyIds.has(d.id))
+        .map((d) => ({
+          id: d.id,
+          name: d.name,
+          items: JSON.stringify(d.items),
+          ne: d.ne,
+          lys: d.lys,
+          met: d.met,
+          thr: d.thr,
+          trp: d.trp,
+          val: d.val,
+          ile: d.ile,
+          p: d.p,
+          dm: d.dm,
+          animal_type: d.animalType,
+          created_at: d.createdAt,
+          device_id: getCachedDeviceId(),
+          user_id: user.id,
+        }));
+
+      if (rows.length === 0) {
+        // dirtyIds referenced diets that no longer exist locally — clear them
+        set({ dirtyIds: new Set<string>(), lastSynced: new Date().toISOString() });
+        return;
+      }
+
+      const { error } = await supabase
+        .from(TABLES.SAVED_DIETS)
+        .upsert(rows, { onConflict: 'id' });
+
+      if (error) {
+        // Don't clear dirtyIds on error — preserve for retry
+        console.error('Error syncing to cloud:', error);
+        return;
+      }
+
+      // Success — clear dirty set and update timestamp
+      set({ dirtyIds: new Set<string>(), lastSynced: new Date().toISOString() });
+      get().saveToStorage();
     } catch (error) {
+      // Don't clear dirtyIds — preserve for retry
       console.error('Error syncing to cloud:', error);
     } finally {
       set({ isSyncing: false });
@@ -353,44 +462,59 @@ export const useDietStore = create<DietState>()((set, get) => ({
     
     set({ isSyncing: true });
     try {
+      // Require authenticated user for cloud load
+      const user = useAuthStore.getState().user;
+      if (!user) {
+        // Not authenticated — skip cloud load
+        return;
+      }
+
+      const deviceId = getCachedDeviceId() || 'none';
+
       const { data, error } = await supabase
         .from(TABLES.SAVED_DIETS)
         .select('*')
+        .or(`user_id.eq.${user.id},device_id.eq.${deviceId}`)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading from cloud:', error);
+        return;
+      }
       
       if (data && data.length > 0) {
         const cloudRows = data as CloudDietRow[];
-        const cloudDiets: SavedDiet[] = cloudRows.map((d) => ({
-          id: d.id,
-          name: d.name,
-          items: typeof d.items === 'string' ? JSON.parse(d.items) : d.items,
-          ne: d.ne,
-          lys: d.lys,
-          met: d.met,
-          thr: d.thr,
-          trp: d.trp ?? 0,
-          val: d.val ?? 0,
-          ile: d.ile ?? 0,
-          p: d.p,
-          dm: d.dm,
-          animalType: d.animal_type,
-          createdAt: d.created_at,
-        }));
-        
-        // Merge with local (cloud wins for duplicates)
+
+        // Map-based merge: build local lookup, then merge cloud data
         const { savedDiets } = get();
-        const merged = [...savedDiets];
-        
-        for (const cloudDiet of cloudDiets) {
-          const exists = merged.find(d => d.id === cloudDiet.id);
-          if (!exists) {
-            merged.push(cloudDiet);
+        const localMap = new Map<string, SavedDiet>(
+          savedDiets.map((d) => [d.id, d]),
+        );
+
+        for (const row of cloudRows) {
+          if (!localMap.has(row.id)) {
+            // Convert CloudDietRow → SavedDiet
+            localMap.set(row.id, {
+              id: row.id,
+              name: row.name,
+              items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+              ne: row.ne,
+              lys: row.lys,
+              met: row.met,
+              thr: row.thr,
+              trp: row.trp ?? 0,
+              val: row.val ?? 0,
+              ile: row.ile ?? 0,
+              p: row.p,
+              dm: row.dm,
+              animalType: row.animal_type,
+              createdAt: row.created_at,
+            });
           }
+          // If already in localMap, keep local version (local wins)
         }
         
-        set({ savedDiets: merged, lastSynced: new Date().toISOString() });
+        set({ savedDiets: Array.from(localMap.values()), lastSynced: new Date().toISOString() });
         get().saveToStorage();
       }
     } catch (error) {

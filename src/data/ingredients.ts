@@ -65,10 +65,14 @@ export const ingredients: Ingredient[] = [
   { id: 'trace-minerals', name: 'Microminerales', category: 'Vitamina', ne: 0, lys: 0, met: 0, thr: 0, trp: 0, p: 0, dm: 95.0, val: 0, ile: 0, inclusionLimits: { minPct: 0.05, maxPct: 0.3 } },
 ];
 
+const ingredientMap = new Map<string, Ingredient>(
+  ingredients.map(i => [i.id, i])
+);
+
 export const CATEGORIES = ['Cereal', 'Oleaginosa', 'Subproducto', 'Animal', 'Lácteo', 'Grasa', 'Mineral', 'Aminoácido', 'Enzima', 'Vitamina'];
 
 export function getIngredientById(id: string): Ingredient | undefined {
-  return ingredients.find(i => i.id === id);
+  return ingredientMap.get(id);
 }
 
 export function getIngredientsByCategory(category: string): Ingredient[] {

@@ -54,6 +54,10 @@ export const defaultPrices: IngredientPrice[] = [
   { id: 'trace-minerals', pricePerKg: 9500, currency: 'CLP' },
 ];
 
+const defaultPriceMap = new Map<string, number>(
+  defaultPrices.map(p => [p.id, p.pricePerKg])
+);
+
 // Custom prices that can be set by user
 let customPrices: Record<string, number> = {};
 
@@ -74,9 +78,8 @@ export function getIngredientPrice(id: string): number {
   if (customPrices[id] !== undefined) {
     return customPrices[id];
   }
-  // Then fall back to default
-  const price = defaultPrices.find(p => p.id === id);
-  return price?.pricePerKg || 0;
+  // Then fall back to default (O(1) Map lookup)
+  return defaultPriceMap.get(id) ?? 0;
 }
 
 export function calculateDietCost(diet: Array<{id: string, pct: number}>): number {

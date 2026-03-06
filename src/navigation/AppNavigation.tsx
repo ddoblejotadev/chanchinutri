@@ -8,11 +8,15 @@ import CreateDietScreen from '../screens/CreateDietScreen';
 import DietResultScreen from '../screens/DietResultScreen';
 import SavedDietsScreen from '../screens/SavedDietsScreen';
 import PriceSettingsScreen from '../screens/PriceSettingsScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   CreateDiet: undefined;
   DietResult: undefined;
+  Login: undefined;
+  Register: undefined;
 };
 
 export type TabParamList = {
@@ -94,6 +98,8 @@ export default function AppNavigation() {
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="CreateDiet" component={CreateDietScreen} options={{ title: 'Crear Dieta' }} />
         <Stack.Screen name="DietResult" component={DietResultScreen} options={{ title: 'Resultados' }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
