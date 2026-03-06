@@ -15,6 +15,9 @@ openspec/
 .gga
 .opencode/
 
+# Local config (global tools)
+.config/
+
 # Native
 .kotlin/
 *.orig.*
