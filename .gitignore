@@ -13,7 +13,7 @@ expo-env.d.ts
 # SDD local artifacts
 openspec/
 .gga
-#.opencode/  # Uncomment to track SDD commands in repo
+.opencode/
 
 # Local config (global tools)
 .config/
